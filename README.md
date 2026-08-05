@@ -18,12 +18,14 @@ This project is built from scratch as a complete end-to-end GeoAgent system:
 3. **React Visual Dashboard (`frontend/`)**: A sleek, modern Vite + React web application featuring a glassmorphism chat interface and an interactive Leaflet map that dynamically plots the AI's spatial reasoning in real-time.
 
 ## The Spatial Tools
-The MCP server exposes 5 autonomous tools using Open Source Intelligence (OSINT):
+The MCP server exposes 7 autonomous tools using Open Source Intelligence (OSINT):
 1. `geocode_location`: Converts city/place names to GPS coordinates (via OpenStreetMap Nominatim).
 2. `get_weather_and_heat_risk`: Fetches live temperature, humidity, UV index, and calculates WHO/CDC Heat Risk (via Open-Meteo).
 3. `get_air_quality`: Fetches real-time AQI and particulate matter levels (via Open-Meteo).
 4. `find_cooling_spots`: A spatial query to locate nearby parks, pools, fountains, and libraries (via Overpass QL).
 5. `get_heat_safety_advice`: A localized WHO/CDC knowledge base for activity-specific safety recommendations.
+6. `query_emergency_protocols`: A **Spatial RAG** engine that searches a local ChromaDB Vector Database using `sentence-transformers` to inject official medical documents into the LLM context, preventing hallucination.
+7. `generate_uhi_heatmap`: Extracts raw GeoJSON geometries of buildings, roads, and parks via OpenStreetMap Overpass QL to generate visual Urban Heat Island (UHI) Polygon Heatmaps on the React frontend.
 
 ## Installation & Setup
 

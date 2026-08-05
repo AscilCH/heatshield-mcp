@@ -26,7 +26,12 @@ async def generate_uhi_heatmap(latitude: float, longitude: float, radius: int = 
     
     async with httpx.AsyncClient() as client:
         try:
-            response = await client.post(OVERPASS_URL, data={"data": query}, timeout=30.0)
+            response = await client.post(
+                OVERPASS_URL, 
+                data={"data": query}, 
+                headers={"User-Agent": "heatshield-mcp/0.1.0 (GeoAI Research)"},
+                timeout=30.0
+            )
             response.raise_for_status()
         except Exception as exc:
             return json.dumps({"error": f"Failed to connect to OSM Overpass API: {str(exc)}"})

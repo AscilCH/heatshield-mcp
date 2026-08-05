@@ -1,104 +1,95 @@
-# HeatShield GeoAgent Architecture
+# 🏗️ HeatShield: Advanced Spatial RAG Architecture
 
-This document visually breaks down exactly how the HeatShield project operates. You can use these diagrams to study for your interview and explain the data flow to Shoaib.
+This document visually breaks down exactly how the HeatShield project operates. It is designed as an Agentic Spatial Analytics Platform for urban climate resilience.
 
 > [!TIP]
-> The core value proposition of this architecture is that **the AI does not guess geographic data**. It acts strictly as an orchestrator, while the MCP Server acts as the factual data retrieval engine.
-
-## High-Level System Flow
-
-```mermaid
-graph TD
-    User([User]) -->|1. Asks a question / Clicks Quick Action| FE[React Web Dashboard]
-    FE -->|2. Sends Chat History & Geolocation| BE[FastAPI Backend]
-    
-    subgraph Agent Loop
-        BE <-->|3. Analyzes Prompt| LLM((Gemini 3.5 Flash))
-        LLM -.->|4. Decides to use a tool| BE
-        BE <-->|5. Executes Tool Call via MCP| MCP[HeatShield MCP Server]
-        MCP -.->|6. Returns Raw JSON| BE
-        BE -.->|7. Extracts Map Coordinates & Forecast Data| FE
-    end
-    
-    MCP -->|Queries| OM(Open-Meteo API)
-    MCP -->|Queries| OSM(OpenStreetMap Overpass API)
-    
-    LLM -->|8. Formats final text| BE
-    BE -->|9. Returns Response| FE
-    FE -->|10. Renders Markdown Cards & Chart Dialogs| User
-```
+> **Core Architecture:** HeatShield uses a **Model Context Protocol (MCP)** backend to orchestrate complex spatial algorithms, real-time meteorological data, and a Vector Database for grounded medical protocols.
 
 ---
 
-## The Model Context Protocol (MCP) Boundary
+## 1. System Overview
 
-The MCP Server is completely isolated from the AI. This means you can swap out Gemini for Claude or ChatGPT, and the tools will still work identically.
+HeatShield is an **Agentic Spatial Analytics Platform** designed for urban climate resilience. It uses a **Model Context Protocol (MCP)** backend to orchestrate complex spatial algorithms, real-time meteorological data, and a Vector Database for grounded medical protocols.
 
-```mermaid
-sequenceDiagram
-    participant LLM as Gemini Agent
-    participant MCP as HeatShield MCP Server
-    participant APIs as External APIs
-    
-    LLM->>MCP: Call geocode_location("Karlsruhe")
-    MCP->>APIs: Nominatim API Request
-    APIs-->>MCP: lat: 49.0068, lon: 8.4034
-    MCP-->>LLM: JSON Coordinates
-    
-    LLM->>MCP: Call get_weather_and_heat_risk(49.00, 8.40)
-    MCP->>APIs: Open-Meteo Request
-    APIs-->>MCP: Temp: 30°C, Risk: HIGH
-    MCP-->>LLM: JSON Risk Assessment
-    
-    LLM->>MCP: Call find_cooling_spots(49.00, 8.40)
-    MCP->>APIs: Overpass QL Request
-    APIs-->>MCP: List of 15 nearby lakes/parks
-    LLM->>MCP: Call get_heatwave_forecast(49.00, 8.40)
-    MCP->>APIs: Open-Meteo Request (Temp + Soil Moisture)
-    APIs-->>MCP: 7-Day arrays for Temp and Moisture
-    MCP-->>LLM: JSON Drought Amplification & Heatwave Alert
-    
-    LLM->>MCP: Call get_air_quality_forecast(49.00, 8.40)
-    MCP->>APIs: Open-Meteo Air Quality API
-    APIs-->>MCP: 5-Day arrays for PM10 and PM2.5
-    MCP-->>LLM: JSON Smoke/Dust Predictive Alert
-```
+### 🌐 Frontend (React + Vite + Leaflet)
+* **Glassmorphism UI:** Modern, responsive chat interface.
+* **Spatial Rendering:** Uses `react-leaflet` to render custom GeoJSON Polygon overlays (not just standard pins) to visualize Urban Heat Islands (UHI).
+* **Data Visualization:** Uses `recharts` to render dismissible, multi-axis predictive widgets for Soil Moisture and Air Quality forecasting.
+* **Geolocation Native:** Automatically requests browser geolocation on mount to instantly contextualize emergency data.
+
+### ðŸ§  Backend Orchestration (FastAPI + MCP + Gemini)
+* **API Gateway:** A FastAPI layer (`api.py`) receives chat messages and intercepts structured spatial payloads (GeoJSON/Forecasts) before passing them to the frontend.
+* **LLM Engine:** Uses the `openai` Python SDK (pointed at Gemini 1.5 Flash) with function-calling capabilities.
+* **MCP Server (`server.py`):** Encapsulates all spatial tools using the open-standard Model Context Protocol. This makes the tools agnostic and reusable by any agentic framework.
 
 ---
 
-## The Frontend Data Flow (React)
+## 2. The Agentic Tool Stack (MCP)
 
-The frontend does much more than just render text. It parses the JSON responses from the Backend to orchestrate a multi-modal dashboard:
-1. **Dynamic Mapping**: Automatically plots `lat/lng` coordinates from tool usage as pins on the CartoDB Dark map.
-2. **Markdown Cards**: Intercepts the LLM's markdown headers to render visually distinct Glassmorphism Cards for Warnings, Weather, and Cooling Spots.
-3. **Chart Dialogs**: Intercepts the raw `forecast_data` and `aq_forecast_data` payloads to render interactive, dismissible Recharts line graphs overlaid directly on the UI.
-4. **Context-Aware Quick Actions**: Uses the browser's Geolocation API to auto-fill prompts like *"Find cooling spots near me"* and silently injects the user's exact coordinates into Gemini's system prompt to bypass geocoding loops.
+When the user asks a question, Gemini has access to the following deterministic tools:
+
+### ðŸ—ºï¸ OpenStreetMap Humanitarian Integration
+1. `geocode_location`: Resolves string addresses into exact coordinates using Nominatim.
+2. `search_cooling_spots`: Calculates the Haversine distance to nearby parks and fountains using the Overpass QL.
+3. `generate_uhi_heatmap`: **(Advanced)** Extracts exact geographic polygon geometries (buildings, parking lots vs forests, parks) using the Overpass API. It generates a GeoJSON `FeatureCollection` to render red "heat traps" and green "cooling zones" on the frontend.
+
+### ðŸŒ¤ï¸ Real-Time & Predictive Climate Data
+4. `get_weather_and_heat_risk`: Fetches live Open-Meteo data and calculates WHO/CDC Risk Levels.
+5. `get_heatwave_forecast`: Analyzes a 7-day forecast, specifically correlating High Temperatures with **Soil Moisture/Drought** data to calculate a "Climate Aggravation Risk."
+6. `get_air_quality_forecast`: Fetches a 5-day predictive trajectory of PM10 (dust) and PM2.5 (smoke), crucial during dry heatwaves.
+
+### ðŸ“š Spatial RAG (Retrieval-Augmented Generation)
+7. `query_emergency_protocols`: **(Advanced)**
+   * **Database:** Uses a local **ChromaDB** Vector Database.
+   * **Embeddings:** Uses `sentence-transformers` (`all-MiniLM-L6-v2`) to convert text into high-dimensional vectors.
+   * **Function:** When asked for safety advice, it performs a semantic similarity search across official WHO and Urban Planning protocols, injecting the exact medical guidelines into the prompt to completely eliminate LLM hallucinations.
 
 ---
 
-## Directory Structure
-
-Here is how your codebase is physically organized to support this architecture:
+## 3. Data Flow Diagram
 
 ```mermaid
 graph LR
-    Root[heatshield-mcp/] --> BE(api.py - FastAPI Server)
-    Root --> FE[frontend/ - React Web App]
-    Root --> MCP[src/heatshield/ - MCP Server]
+    %% User and Interface
+    User((User))
     
-    MCP --> S(server.py - RPC Registration)
-    MCP --> G(geocoding.py)
-    MCP --> W(weather.py)
-    MCP --> F(forecast.py - Heat & Soil Moisture)
-    MCP --> AQ(air_quality.py - Live & 5-Day Forecast)
-    MCP --> CS(cooling_spots.py)
-    MCP --> SA(safety_advice.py)
+    subgraph Frontend ["ðŸ’» React + Leaflet (Frontend)"]
+        Chat[Chat Interface]
+        Map[Interactive Map]
+    end
     
-    style Root fill:#1e293b,stroke:#334155,color:#fff
-    style BE fill:#0f766e,stroke:#115e59,color:#fff
-    style FE fill:#0369a1,stroke:#0284c7,color:#fff
-    style MCP fill:#b45309,stroke:#92400e,color:#fff
+    subgraph Backend ["âš™ï¸ FastAPI (API Gateway)"]
+        Router[Chat Endpoint]
+        Parser[JSON Payload Interceptor]
+    end
+    
+    subgraph AI ["ðŸ§  LLM Engine"]
+        Agent((Gemini 3.5 Flash Lite))
+    end
+    
+    subgraph Tools ["ðŸ› ï¸ HeatShield MCP Server"]
+        RAG[(ChromaDB Vector Store)]
+        OSM[OpenStreetMap / Overpass API]
+        Weather[Open-Meteo API]
+    end
+    
+    %% Flows
+    User -->|Asks Question| Chat
+    Chat -->|Sends message & coords| Router
+    Router -->|Passes history & tools| Agent
+    
+    Agent -->|Invokes RAG Tool| RAG
+    Agent -->|Invokes UHI Tool| OSM
+    Agent -->|Invokes Forecast Tool| Weather
+    
+    RAG -.->|Returns Protocols| Agent
+    OSM -.->|Returns GeoJSON Polygons| Agent
+    Weather -.->|Returns Live Climate Data| Agent
+    
+    Agent -->|Final Text + JSON payloads| Parser
+    Parser -->|Strips Text| Chat
+    Parser -->|Strips GeoJSON/Charts| Map
+    
+    Chat -.->|Displays Text Response| User
+    Map -.->|Renders Glowing Heatmap| User
 ```
-
-> [!IMPORTANT]
-> **Decoupled Logic:** Notice how the `src/heatshield/` folder separates `server.py` from the individual tool files (`geocoding.py`, `forecast.py`, etc.). This is a best practice that makes the tools testable without needing to boot up the entire MCP server!

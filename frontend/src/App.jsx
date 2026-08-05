@@ -319,7 +319,7 @@ function App() {
            
            <button onClick={() => {
              handleQuickAction(`Can you generate an Urban Heat Island heatmap for my location to show concrete vs green zones?`)
-           }}><Map size={14}/> Generate UHI Heatmap</button>
+           }}><MapIcon size={14}/> Generate UHI Heatmap</button>
            
            <button onClick={() => {
              handleQuickAction(`Can you give me a 5-day air quality forecast for my location?`)
