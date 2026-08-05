@@ -9,15 +9,15 @@ This document visually breaks down exactly how the HeatShield project operates. 
 
 ```mermaid
 graph TD
-    User([User]) -->|1. Asks a question| FE[React Web Dashboard]
-    FE -->|2. Sends Chat History| BE[FastAPI Backend]
+    User([User]) -->|1. Asks a question / Clicks Quick Action| FE[React Web Dashboard]
+    FE -->|2. Sends Chat History & Geolocation| BE[FastAPI Backend]
     
     subgraph Agent Loop
         BE <-->|3. Analyzes Prompt| LLM((Gemini 3.5 Flash))
         LLM -.->|4. Decides to use a tool| BE
         BE <-->|5. Executes Tool Call via MCP| MCP[HeatShield MCP Server]
         MCP -.->|6. Returns Raw JSON| BE
-        BE -.->|7. Extracts Map Coordinates| FE
+        BE -.->|7. Extracts Map Coordinates & Forecast Data| FE
     end
     
     MCP -->|Queries| OM(Open-Meteo API)
@@ -25,6 +25,7 @@ graph TD
     
     LLM -->|8. Formats final text| BE
     BE -->|9. Returns Response| FE
+    FE -->|10. Renders Markdown Cards & Chart Dialogs| User
 ```
 
 ---
@@ -52,8 +53,26 @@ sequenceDiagram
     LLM->>MCP: Call find_cooling_spots(49.00, 8.40)
     MCP->>APIs: Overpass QL Request
     APIs-->>MCP: List of 15 nearby lakes/parks
-    MCP-->>LLM: JSON Array of Locations
+    LLM->>MCP: Call get_heatwave_forecast(49.00, 8.40)
+    MCP->>APIs: Open-Meteo Request (Temp + Soil Moisture)
+    APIs-->>MCP: 7-Day arrays for Temp and Moisture
+    MCP-->>LLM: JSON Drought Amplification & Heatwave Alert
+    
+    LLM->>MCP: Call get_air_quality_forecast(49.00, 8.40)
+    MCP->>APIs: Open-Meteo Air Quality API
+    APIs-->>MCP: 5-Day arrays for PM10 and PM2.5
+    MCP-->>LLM: JSON Smoke/Dust Predictive Alert
 ```
+
+---
+
+## The Frontend Data Flow (React)
+
+The frontend does much more than just render text. It parses the JSON responses from the Backend to orchestrate a multi-modal dashboard:
+1. **Dynamic Mapping**: Automatically plots `lat/lng` coordinates from tool usage as pins on the CartoDB Dark map.
+2. **Markdown Cards**: Intercepts the LLM's markdown headers to render visually distinct Glassmorphism Cards for Warnings, Weather, and Cooling Spots.
+3. **Chart Dialogs**: Intercepts the raw `forecast_data` and `aq_forecast_data` payloads to render interactive, dismissible Recharts line graphs overlaid directly on the UI.
+4. **Context-Aware Quick Actions**: Uses the browser's Geolocation API to auto-fill prompts like *"Find cooling spots near me"* and silently injects the user's exact coordinates into Gemini's system prompt to bypass geocoding loops.
 
 ---
 
@@ -70,7 +89,8 @@ graph LR
     MCP --> S(server.py - RPC Registration)
     MCP --> G(geocoding.py)
     MCP --> W(weather.py)
-    MCP --> AQ(air_quality.py)
+    MCP --> F(forecast.py - Heat & Soil Moisture)
+    MCP --> AQ(air_quality.py - Live & 5-Day Forecast)
     MCP --> CS(cooling_spots.py)
     MCP --> SA(safety_advice.py)
     
@@ -81,4 +101,4 @@ graph LR
 ```
 
 > [!IMPORTANT]
-> **Decoupled Logic:** Notice how the `src/heatshield/` folder separates `server.py` from the individual tool files (`geocoding.py`, `weather.py`, etc.). This is a best practice that makes the tools testable without needing to boot up the entire MCP server!
+> **Decoupled Logic:** Notice how the `src/heatshield/` folder separates `server.py` from the individual tool files (`geocoding.py`, `forecast.py`, etc.). This is a best practice that makes the tools testable without needing to boot up the entire MCP server!
