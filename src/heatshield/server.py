@@ -13,7 +13,7 @@ We separate our business logic (like geocoding.py) from the server.py.
 This keeps the server clean and makes the tools testable without the MCP wrapper.
 """
 from mcp.server.mcpserver import MCPServer
-from heatshield import geocoding, weather, air_quality, cooling_spots, safety_advice
+from heatshield import geocoding, weather, air_quality, cooling_spots, safety_advice, forecast
 
 # Initialize the MCP Server (This is the high-level API, formerly known as FastMCP)
 mcp = MCPServer(
@@ -72,6 +72,15 @@ def get_heat_safety_advice(heat_risk_level: str, activity_type: str) -> str:
         activity_type: e.g., "jogging", "construction work", "elderly care", "general"
     """
     return safety_advice.get_advice(heat_risk_level, activity_type)
+
+@mcp.tool()
+def get_heatwave_forecast(latitude: float, longitude: float, days: int = 7) -> str:
+    """
+    Fetches a 7-day weather forecast and calculates a Climate Aggravation Risk
+    by correlating high temperatures with drought/soil moisture conditions.
+    Use this to predict upcoming heatwaves and warn the user.
+    """
+    return forecast.get_heatwave_forecast(latitude, longitude, days)
 
 
 # HOW MCP COMMUNICATION WORKS:

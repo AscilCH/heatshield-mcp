@@ -1,5 +1,7 @@
 import { useState, useRef, useEffect } from 'react'
 import { MapContainer, TileLayer, Marker, Popup, useMap } from 'react-leaflet'
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts'
+import { Droplet, Sun, Thermometer, Navigation, Umbrella } from 'lucide-react'
 import axios from 'axios'
 import 'leaflet/dist/leaflet.css'
 import L from 'leaflet'
@@ -22,13 +24,11 @@ function MapController({ markers }) {
   
   useEffect(() => {
     if (markers.length > 0) {
-      // Find the primary search location if any
       const searchLocation = markers.find(m => m.type === 'geocode_location')
       
       if (searchLocation) {
         map.flyTo([searchLocation.lat, searchLocation.lng], 13, { duration: 2 })
       } else {
-        // Just fly to the last marker
         const last = markers[markers.length - 1]
         map.flyTo([last.lat, last.lng], 13, { duration: 2 })
       }
@@ -38,6 +38,35 @@ function MapController({ markers }) {
   return null
 }
 
+// Chart Component for Forecast
+function ForecastWidget({ data }) {
+  if (!data || data.length === 0) return null;
+  
+  const chartData = data.map(d => ({
+    name: new Date(d.date).toLocaleDateString('en-US', { weekday: 'short' }),
+    Temp: d.max_temp_c,
+    FeelsLike: d.feels_like_c
+  }));
+
+  return (
+    <div className="forecast-widget">
+      <h3>7-Day Heatwave Prediction</h3>
+      <div style={{ height: '200px', width: '100%', marginTop: '10px' }}>
+        <ResponsiveContainer width="100%" height="100%">
+          <LineChart data={chartData}>
+            <CartesianGrid strokeDasharray="3 3" stroke="#ffffff20" />
+            <XAxis dataKey="name" stroke="#fff" fontSize={12} />
+            <YAxis stroke="#fff" fontSize={12} domain={['dataMin - 2', 'dataMax + 2']} />
+            <Tooltip contentStyle={{ backgroundColor: '#1e293b', border: 'none', borderRadius: '8px' }} />
+            <Line type="monotone" dataKey="Temp" stroke="#ef4444" strokeWidth={3} dot={{ r: 4 }} activeDot={{ r: 6 }} />
+            <Line type="monotone" dataKey="FeelsLike" stroke="#f59e0b" strokeWidth={2} strokeDasharray="5 5" />
+          </LineChart>
+        </ResponsiveContainer>
+      </div>
+    </div>
+  )
+}
+
 function App() {
   const [messages, setMessages] = useState([
     { role: 'assistant', content: 'Hello! I am HeatShield, your urban heat wave safety assistant. Where are you located, and how can I help you stay safe today?' }
@@ -45,12 +74,17 @@ function App() {
   const [input, setInput] = useState('')
   const [isLoading, setIsLoading] = useState(false)
   const [markers, setMarkers] = useState([])
+  const [forecastData, setForecastData] = useState(null)
   const chatEndRef = useRef(null)
 
-  // Scroll to bottom of chat automatically
   useEffect(() => {
     chatEndRef.current?.scrollIntoView({ behavior: 'smooth' })
   }, [messages, isLoading])
+
+  const handleQuickAction = (actionText) => {
+    setInput(actionText)
+    // Optional: could immediately trigger send here by abstracting sendMessage logic
+  }
 
   const sendMessage = async (e) => {
     e.preventDefault()
@@ -62,7 +96,6 @@ function App() {
     setIsLoading(true)
     
     try {
-      // We pass the previous history excluding the very first greeting
       const history = messages.slice(1).map(m => ({ role: m.role, content: m.content }))
       
       const response = await axios.post('http://localhost:8000/api/chat', {
@@ -70,12 +103,16 @@ function App() {
         history: history
       })
       
-      const { text, markers: newMarkers } = response.data
+      const { text, markers: newMarkers, forecast } = response.data
       
       setMessages(prev => [...prev, { role: 'assistant', content: text }])
       
       if (newMarkers && newMarkers.length > 0) {
         setMarkers(newMarkers)
+      }
+      
+      if (forecast) {
+        setForecastData(forecast)
       }
       
     } catch (error) {
@@ -89,15 +126,48 @@ function App() {
     }
   }
 
-  // Helper to safely render markdown-like formatting in our simple chat
+  // Parses markdown headers and wraps sections into "Cards"
   const formatContent = (text) => {
     if (!text) return null;
-    return text.split('\n').map((line, i) => {
-      if (line.startsWith('### ')) return <h3 key={i}>{line.replace('### ', '')}</h3>
-      if (line.startsWith('* ')) return <li key={i}>{line.replace('* ', '')}</li>
-      if (line.trim() === '---') return <hr key={i} style={{margin: '12px 0', borderColor: 'rgba(255,255,255,0.1)'}} />
-      return <p key={i} dangerouslySetInnerHTML={{ __html: line.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>') }} />
-    })
+    
+    // Split by Markdown headers (h2 or h3)
+    const sections = text.split(/(?=###? )/);
+    
+    return sections.map((section, idx) => {
+      let isWarning = section.includes('Alert') || section.includes('Warning') || section.includes('EXTREME');
+      let isWeather = section.includes('Weather') || section.includes('Temperature');
+      let isSpots = section.includes('Cooling') || section.includes('Spots');
+      
+      let cardClass = "chat-card";
+      if (isWarning) cardClass += " warning-card";
+      if (isWeather) cardClass += " weather-card";
+      if (isSpots) cardClass += " spots-card";
+      
+      // If it doesn't start with a header, it's just normal text
+      if (!section.startsWith('#')) {
+         return (
+           <div key={idx} className="chat-normal-text" dangerouslySetInnerHTML={{ 
+             __html: section.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>').replace(/\n/g, '<br/>') 
+           }} />
+         );
+      }
+      
+      // Clean up the text for the card
+      const lines = section.split('\n');
+      const header = lines[0].replace(/###? /, '');
+      const body = lines.slice(1).join('\n')
+        .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+        .replace(/\*(.*?)\*/g, '<em>$1</em>')
+        .replace(/\n\*/g, '<br/>•')
+        .replace(/\n/g, '<br/>');
+      
+      return (
+        <div key={idx} className={cardClass}>
+          <h4>{header}</h4>
+          <div className="card-body" dangerouslySetInnerHTML={{ __html: body }} />
+        </div>
+      );
+    });
   }
 
   return (
@@ -105,19 +175,24 @@ function App() {
       {/* Background Map */}
       <div className="map-container">
         <MapContainer center={[49.0068, 8.4034]} zoom={4} style={{ height: '100%', width: '100%' }} zoomControl={false}>
-          {/* Dark modern map tiles (CartoDB Dark Matter) */}
           <TileLayer
             url="https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png"
-            attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>'
+            attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
           />
           <MapController markers={markers} />
-          
           {markers.map((marker, idx) => (
             <Marker key={idx} position={[marker.lat, marker.lng]}>
               <Popup>{marker.label || 'Location'}</Popup>
             </Marker>
           ))}
         </MapContainer>
+        
+        {/* Floating Forecast Widget over the map! */}
+        {forecastData && (
+          <div className="forecast-overlay">
+             <ForecastWidget data={forecastData} />
+          </div>
+        )}
       </div>
 
       {/* Floating Glassmorphism Chat Sidebar */}
@@ -137,15 +212,20 @@ function App() {
           {isLoading && (
             <div className="message assistant">
               <div className="loading-dots">
-                <div className="dot"></div>
-                <div className="dot"></div>
-                <div className="dot"></div>
+                <div className="dot"></div><div className="dot"></div><div className="dot"></div>
               </div>
             </div>
           )}
           <div ref={chatEndRef} />
         </div>
         
+        {/* Quick Actions Area */}
+        <div className="quick-actions">
+           <button onClick={() => handleQuickAction("What is the 7-day forecast for Berlin?")}><Thermometer size={14}/> Predict Heatwave</button>
+           <button onClick={() => handleQuickAction("Find cooling spots near me")}><Umbrella size={14}/> Find Shade</button>
+           <button onClick={() => handleQuickAction("What is the air quality in Paris?")}><Sun size={14}/> Air Quality</button>
+        </div>
+
         <form className="input-area" onSubmit={sendMessage}>
           <input
             type="text"
@@ -156,10 +236,7 @@ function App() {
             disabled={isLoading}
           />
           <button type="submit" className="send-button" disabled={isLoading || !input.trim()}>
-            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <line x1="22" y1="2" x2="11" y2="13"></line>
-              <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
-            </svg>
+            <Navigation size={18} />
           </button>
         </form>
       </div>

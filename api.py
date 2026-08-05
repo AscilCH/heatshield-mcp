@@ -96,6 +96,7 @@ async def chat_endpoint(req: ChatRequest):
     
     # Track map coordinates for the frontend
     map_markers = []
+    forecast_data = None
     
     response = await get_gemini_response(messages, llm_tools)
     msg = response.choices[0].message
@@ -136,6 +137,15 @@ async def chat_endpoint(req: ChatRequest):
                 except:
                     pass
             
+            # If we got a forecast, extract the daily forecast data to render a chart!
+            if tool_name == "get_heatwave_forecast" and not "error" in tool_output:
+                try:
+                    forecast_res = json.loads(tool_output)
+                    if 'daily_forecast' in forecast_res:
+                        forecast_data = forecast_res['daily_forecast']
+                except:
+                    pass
+            
             messages.append({
                 "role": "tool",
                 "tool_call_id": tool_call.id,
@@ -150,6 +160,7 @@ async def chat_endpoint(req: ChatRequest):
     return {
         "text": msg.content,
         "markers": map_markers,
+        "forecast": forecast_data,
         "history": req.history + [
             {"role": "user", "content": req.message},
             {"role": "assistant", "content": msg.content}
