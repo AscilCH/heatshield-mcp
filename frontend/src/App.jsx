@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect } from 'react'
-import { MapContainer, TileLayer, Marker, Popup, useMap } from 'react-leaflet'
+import { MapContainer, TileLayer, Marker, Popup, useMap, GeoJSON } from 'react-leaflet'
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts'
-import { Droplet, Sun, Thermometer, Navigation, Umbrella } from 'lucide-react'
+import { Droplet, Sun, Thermometer, Navigation, Umbrella, Map as MapIcon } from 'lucide-react'
 import axios from 'axios'
 import 'leaflet/dist/leaflet.css'
 import L from 'leaflet'
@@ -114,6 +114,7 @@ function App() {
   const [markers, setMarkers] = useState([])
   const [forecastData, setForecastData] = useState(null)
   const [aqForecastData, setAqForecastData] = useState(null)
+  const [heatmapGeojson, setHeatmapGeojson] = useState(null)
   const [userLocation, setUserLocation] = useState(null)
   const chatEndRef = useRef(null)
 
@@ -153,6 +154,7 @@ function App() {
     setIsLoading(true)
     setForecastData(null) // Clear previous forecast chart on new request
     setAqForecastData(null) // Clear previous AQ chart on new request
+    setHeatmapGeojson(null) // Clear previous heatmap on new request
     
     try {
       const history = messages.slice(1).map(m => ({ role: m.role, content: m.content }))
@@ -163,7 +165,7 @@ function App() {
         userLocation: userLocation
       })
       
-      const { text, markers: newMarkers, forecast, aq_forecast } = response.data
+      const { text, markers: newMarkers, forecast, aq_forecast, heatmap_geojson } = response.data
       
       setMessages(prev => [...prev, { role: 'assistant', content: text }])
       
@@ -177,6 +179,10 @@ function App() {
       
       if (aq_forecast) {
         setAqForecastData(aq_forecast)
+      }
+      
+      if (heatmap_geojson) {
+        setHeatmapGeojson(heatmap_geojson)
       }
       
     } catch (error) {
@@ -249,6 +255,17 @@ function App() {
               <Popup>{marker.label || 'Location'}</Popup>
             </Marker>
           ))}
+          {heatmapGeojson && (
+            <GeoJSON 
+              data={heatmapGeojson} 
+              style={(feature) => ({
+                color: feature.properties.color,
+                fillColor: feature.properties.color,
+                weight: 1,
+                fillOpacity: feature.properties.fillOpacity
+              })}
+            />
+          )}
         </MapContainer>
         
         {/* Floating Forecast Widgets over the map! */}
@@ -299,6 +316,10 @@ function App() {
            <button onClick={() => {
              handleQuickAction(`Find cooling spots near me`)
            }}><Umbrella size={14}/> Find Shade</button>
+           
+           <button onClick={() => {
+             handleQuickAction(`Can you generate an Urban Heat Island heatmap for my location to show concrete vs green zones?`)
+           }}><Map size={14}/> Generate UHI Heatmap</button>
            
            <button onClick={() => {
              handleQuickAction(`Can you give me a 5-day air quality forecast for my location?`)

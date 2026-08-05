@@ -106,6 +106,7 @@ async def chat_endpoint(req: ChatRequest):
     map_markers = []
     forecast_data = None
     aq_forecast_data = None
+    heatmap_geojson = None
     
     response = await get_gemini_response(messages, llm_tools)
     msg = response.choices[0].message
@@ -162,6 +163,14 @@ async def chat_endpoint(req: ChatRequest):
                         aq_forecast_data = aq_res['aq_forecast']
                 except:
                     pass
+                    
+            if tool_name == "get_urban_heat_island_heatmap" and not "error" in tool_output:
+                try:
+                    heatmap_res = json.loads(tool_output)
+                    if 'heatmap_geojson' in heatmap_res:
+                        heatmap_geojson = heatmap_res['heatmap_geojson']
+                except:
+                    pass
             
             messages.append({
                 "role": "tool",
@@ -179,6 +188,7 @@ async def chat_endpoint(req: ChatRequest):
         "markers": map_markers,
         "forecast": forecast_data,
         "aq_forecast": aq_forecast_data,
+        "heatmap_geojson": heatmap_geojson,
         "history": req.history + [
             {"role": "user", "content": req.message},
             {"role": "assistant", "content": msg.content}

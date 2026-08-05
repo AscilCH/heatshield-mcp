@@ -13,7 +13,7 @@ We separate our business logic (like geocoding.py) from the server.py.
 This keeps the server clean and makes the tools testable without the MCP wrapper.
 """
 from mcp.server.mcpserver import MCPServer
-from heatshield import geocoding, weather, air_quality, cooling_spots, safety_advice, forecast
+from heatshield import geocoding, weather, air_quality, cooling_spots, safety_advice, forecast, rag, heat_map
 
 # Initialize the MCP Server (This is the high-level API, formerly known as FastMCP)
 mcp = MCPServer(
@@ -90,6 +90,21 @@ def get_heatwave_forecast(latitude: float, longitude: float, days: int = 7) -> s
     """
     return forecast.get_heatwave_forecast(latitude, longitude, days)
 
+@mcp.tool()
+async def query_emergency_protocols(query: str) -> str:
+    """
+    Search official medical and urban heat emergency protocols using semantic vector search (RAG).
+    Use this when the user asks for safety guidelines, medical advice, or urban planning rules.
+    """
+    return await rag.search_emergency_protocols(query)
+
+@mcp.tool()
+async def get_urban_heat_island_heatmap(latitude: float, longitude: float, radius: int = 1500) -> str:
+    """
+    Generates a live spatial GeoJSON heatmap of the Urban Heat Island (UHI) effect.
+    Use this when the user wants to visualize heat traps (concrete) versus cooling zones (parks).
+    """
+    return await heat_map.generate_uhi_heatmap(latitude, longitude, radius)
 
 # HOW MCP COMMUNICATION WORKS:
 # When we call mcp.run(transport="stdio"), the server enters an infinite loop.
