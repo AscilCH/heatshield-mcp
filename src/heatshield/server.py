@@ -55,6 +55,14 @@ async def get_air_quality(latitude: float, longitude: float) -> str:
     return await air_quality.get_air_quality_data(latitude, longitude)
 
 @mcp.tool()
+async def get_air_quality_forecast(latitude: float, longitude: float, days: int = 5) -> str:
+    """
+    Fetches a multi-day predictive air quality forecast (PM10, PM2.5). 
+    Use this to warn users about incoming dust, smoke, or pollution events.
+    """
+    return await air_quality.get_air_quality_forecast(latitude, longitude, days)
+
+@mcp.tool()
 async def find_cooling_spots(latitude: float, longitude: float, radius: int = 1000) -> str:
     """
     Use spatial analytics to find nearby cooling shelters (parks, pools, libraries, fountains).

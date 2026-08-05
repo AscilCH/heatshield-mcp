@@ -81,6 +81,7 @@ app.add_middleware(
 class ChatRequest(BaseModel):
     message: str
     history: typing.List[dict] = []
+    userLocation: typing.Optional[dict] = None
 
 @app.post("/api/chat")
 async def chat_endpoint(req: ChatRequest):
@@ -90,13 +91,21 @@ async def chat_endpoint(req: ChatRequest):
     if not session:
         raise HTTPException(status_code=500, detail="MCP Server not connected")
         
-    messages = [{"role": "system", "content": "You are HeatShield, an urban heat wave safety assistant. Use geospatial tools to accurately assess risk and answer the user's queries."}]
+    system_prompt = "You are HeatShield, an urban heat wave safety assistant. Use geospatial tools to accurately assess risk and answer the user's queries."
+    
+    if req.userLocation:
+        lat = req.userLocation.get('lat')
+        lng = req.userLocation.get('lng')
+        system_prompt += f" The user's device is currently located at Latitude {lat}, Longitude {lng}. If they ask for information 'near me', 'here', or for their current location, you MUST use these exact coordinates directly in your tool calls without geocoding."
+
+    messages = [{"role": "system", "content": system_prompt}]
     messages.extend(req.history)
     messages.append({"role": "user", "content": req.message})
     
     # Track map coordinates for the frontend
     map_markers = []
     forecast_data = None
+    aq_forecast_data = None
     
     response = await get_gemini_response(messages, llm_tools)
     msg = response.choices[0].message
@@ -145,6 +154,14 @@ async def chat_endpoint(req: ChatRequest):
                         forecast_data = forecast_res['daily_forecast']
                 except:
                     pass
+                    
+            if tool_name == "get_air_quality_forecast" and not "error" in tool_output:
+                try:
+                    aq_res = json.loads(tool_output)
+                    if 'aq_forecast' in aq_res:
+                        aq_forecast_data = aq_res['aq_forecast']
+                except:
+                    pass
             
             messages.append({
                 "role": "tool",
@@ -161,6 +178,7 @@ async def chat_endpoint(req: ChatRequest):
         "text": msg.content,
         "markers": map_markers,
         "forecast": forecast_data,
+        "aq_forecast": aq_forecast_data,
         "history": req.history + [
             {"role": "user", "content": req.message},
             {"role": "assistant", "content": msg.content}

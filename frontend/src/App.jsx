@@ -38,28 +38,66 @@ function MapController({ markers }) {
   return null
 }
 
-// Chart Component for Forecast
-function ForecastWidget({ data }) {
+// Chart Component for Heatwave & Soil Moisture Forecast
+function ForecastWidget({ data, onClose }) {
   if (!data || data.length === 0) return null;
   
   const chartData = data.map(d => ({
     name: new Date(d.date).toLocaleDateString('en-US', { weekday: 'short' }),
     Temp: d.max_temp_c,
-    FeelsLike: d.feels_like_c
+    FeelsLike: d.feels_like_c,
+    Moisture: d.soil_moisture * 100 // Scale to 0-100 for better visibility on same chart
   }));
 
   return (
     <div className="forecast-widget">
-      <h3>7-Day Heatwave Prediction</h3>
+      <div className="widget-header">
+        <h3>7-Day Heat & Drought Prediction</h3>
+        <button className="close-btn" onClick={onClose}>✕</button>
+      </div>
       <div style={{ height: '200px', width: '100%', marginTop: '10px' }}>
         <ResponsiveContainer width="100%" height="100%">
           <LineChart data={chartData}>
             <CartesianGrid strokeDasharray="3 3" stroke="#ffffff20" />
             <XAxis dataKey="name" stroke="#fff" fontSize={12} />
-            <YAxis stroke="#fff" fontSize={12} domain={['dataMin - 2', 'dataMax + 2']} />
+            <YAxis yAxisId="left" stroke="#fff" fontSize={12} domain={['dataMin - 2', 'dataMax + 2']} />
+            <YAxis yAxisId="right" orientation="right" stroke="#3b82f6" fontSize={12} domain={[0, 100]} />
             <Tooltip contentStyle={{ backgroundColor: '#1e293b', border: 'none', borderRadius: '8px' }} />
-            <Line type="monotone" dataKey="Temp" stroke="#ef4444" strokeWidth={3} dot={{ r: 4 }} activeDot={{ r: 6 }} />
-            <Line type="monotone" dataKey="FeelsLike" stroke="#f59e0b" strokeWidth={2} strokeDasharray="5 5" />
+            <Line yAxisId="left" type="monotone" dataKey="Temp" stroke="#ef4444" strokeWidth={3} dot={{ r: 4 }} activeDot={{ r: 6 }} name="Max Temp (°C)" />
+            <Line yAxisId="left" type="monotone" dataKey="FeelsLike" stroke="#f59e0b" strokeWidth={2} strokeDasharray="5 5" name="Feels Like (°C)" />
+            <Line yAxisId="right" type="monotone" dataKey="Moisture" stroke="#3b82f6" strokeWidth={2} name="Soil Moisture (%)" />
+          </LineChart>
+        </ResponsiveContainer>
+      </div>
+    </div>
+  )
+}
+
+// Chart Component for Air Quality Forecast
+function AQForecastWidget({ data, onClose }) {
+  if (!data || data.length === 0) return null;
+  
+  const chartData = data.map(d => ({
+    name: new Date(d.date).toLocaleDateString('en-US', { weekday: 'short' }),
+    PM10: d.max_pm10,
+    PM25: d.max_pm25
+  }));
+
+  return (
+    <div className="forecast-widget aq-widget">
+      <div className="widget-header">
+        <h3>5-Day Air Quality Forecast</h3>
+        <button className="close-btn" onClick={onClose}>✕</button>
+      </div>
+      <div style={{ height: '200px', width: '100%', marginTop: '10px' }}>
+        <ResponsiveContainer width="100%" height="100%">
+          <LineChart data={chartData}>
+            <CartesianGrid strokeDasharray="3 3" stroke="#ffffff20" />
+            <XAxis dataKey="name" stroke="#fff" fontSize={12} />
+            <YAxis stroke="#fff" fontSize={12} />
+            <Tooltip contentStyle={{ backgroundColor: '#1e293b', border: 'none', borderRadius: '8px' }} />
+            <Line type="monotone" dataKey="PM10" stroke="#8b5cf6" strokeWidth={3} dot={{ r: 4 }} name="PM10 (Dust)" />
+            <Line type="monotone" dataKey="PM25" stroke="#ec4899" strokeWidth={3} dot={{ r: 4 }} name="PM2.5 (Smoke)" />
           </LineChart>
         </ResponsiveContainer>
       </div>
@@ -75,36 +113,57 @@ function App() {
   const [isLoading, setIsLoading] = useState(false)
   const [markers, setMarkers] = useState([])
   const [forecastData, setForecastData] = useState(null)
+  const [aqForecastData, setAqForecastData] = useState(null)
+  const [userLocation, setUserLocation] = useState(null)
   const chatEndRef = useRef(null)
+
+  // Request geolocation on mount
+  useEffect(() => {
+    if ("geolocation" in navigator) {
+      navigator.geolocation.getCurrentPosition(
+        (position) => {
+          const loc = { lat: position.coords.latitude, lng: position.coords.longitude };
+          setUserLocation(loc);
+          // Add user to the map markers
+          setMarkers(prev => [...prev, { ...loc, label: "You are here", type: "user_location" }]);
+        },
+        (error) => {
+          console.error("Error getting location: ", error);
+        }
+      );
+    }
+  }, [])
 
   useEffect(() => {
     chatEndRef.current?.scrollIntoView({ behavior: 'smooth' })
   }, [messages, isLoading])
 
   const handleQuickAction = (actionText) => {
-    sendMessage(null, actionText)
+    setInput(actionText)
   }
 
-  const sendMessage = async (e, directText = null) => {
-    if (e) e.preventDefault()
+  const sendMessage = async (e) => {
+    e.preventDefault()
     
-    const userMessage = directText || input
+    const userMessage = input
     if (!userMessage.trim() || isLoading) return
     
     setInput('')
     setMessages(prev => [...prev, { role: 'user', content: userMessage }])
     setIsLoading(true)
     setForecastData(null) // Clear previous forecast chart on new request
+    setAqForecastData(null) // Clear previous AQ chart on new request
     
     try {
       const history = messages.slice(1).map(m => ({ role: m.role, content: m.content }))
       
       const response = await axios.post('http://localhost:8000/api/chat', {
         message: userMessage,
-        history: history
+        history: history,
+        userLocation: userLocation
       })
       
-      const { text, markers: newMarkers, forecast } = response.data
+      const { text, markers: newMarkers, forecast, aq_forecast } = response.data
       
       setMessages(prev => [...prev, { role: 'assistant', content: text }])
       
@@ -114,6 +173,10 @@ function App() {
       
       if (forecast) {
         setForecastData(forecast)
+      }
+      
+      if (aq_forecast) {
+        setAqForecastData(aq_forecast)
       }
       
     } catch (error) {
@@ -188,12 +251,19 @@ function App() {
           ))}
         </MapContainer>
         
-        {/* Floating Forecast Widget over the map! */}
-        {forecastData && (
-          <div className="forecast-overlay">
-             <ForecastWidget data={forecastData} />
-          </div>
-        )}
+        {/* Floating Forecast Widgets over the map! */}
+        <div className="forecast-overlay-container">
+          {forecastData && (
+            <div className="forecast-overlay">
+               <ForecastWidget data={forecastData} onClose={() => setForecastData(null)} />
+            </div>
+          )}
+          {aqForecastData && (
+            <div className="forecast-overlay aq-overlay">
+               <AQForecastWidget data={aqForecastData} onClose={() => setAqForecastData(null)} />
+            </div>
+          )}
+        </div>
       </div>
 
       {/* Floating Glassmorphism Chat Sidebar */}
@@ -223,22 +293,16 @@ function App() {
         {/* Quick Actions Area */}
         <div className="quick-actions">
            <button onClick={() => {
-             const cities = ['Berlin', 'Paris', 'Madrid', 'Rome', 'Sfax', 'Tokyo']
-             const randomCity = cities[Math.floor(Math.random() * cities.length)]
-             handleQuickAction(`What is the 7-day forecast for ${randomCity}?`)
+             handleQuickAction(`What is the 7-day heatwave forecast for my location?`)
            }}><Thermometer size={14}/> Predict Heatwave</button>
            
            <button onClick={() => {
-             const cities = ['Athens', 'Dubai', 'Seville', 'Marseille']
-             const randomCity = cities[Math.floor(Math.random() * cities.length)]
-             handleQuickAction(`Find cooling spots near me in ${randomCity}`)
+             handleQuickAction(`Find cooling spots near me`)
            }}><Umbrella size={14}/> Find Shade</button>
            
            <button onClick={() => {
-             const cities = ['London', 'New York', 'Beijing', 'Los Angeles']
-             const randomCity = cities[Math.floor(Math.random() * cities.length)]
-             handleQuickAction(`What is the air quality in ${randomCity}?`)
-           }}><Sun size={14}/> Air Quality</button>
+             handleQuickAction(`Can you give me a 5-day air quality forecast for my location?`)
+           }}><Sun size={14}/> Air Quality Forecast</button>
         </div>
 
         <form className="input-area" onSubmit={sendMessage}>
