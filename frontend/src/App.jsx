@@ -82,18 +82,19 @@ function App() {
   }, [messages, isLoading])
 
   const handleQuickAction = (actionText) => {
-    setInput(actionText)
-    // Optional: could immediately trigger send here by abstracting sendMessage logic
+    sendMessage(null, actionText)
   }
 
-  const sendMessage = async (e) => {
-    e.preventDefault()
-    if (!input.trim() || isLoading) return
+  const sendMessage = async (e, directText = null) => {
+    if (e) e.preventDefault()
     
-    const userMessage = input
+    const userMessage = directText || input
+    if (!userMessage.trim() || isLoading) return
+    
     setInput('')
     setMessages(prev => [...prev, { role: 'user', content: userMessage }])
     setIsLoading(true)
+    setForecastData(null) // Clear previous forecast chart on new request
     
     try {
       const history = messages.slice(1).map(m => ({ role: m.role, content: m.content }))
@@ -221,9 +222,23 @@ function App() {
         
         {/* Quick Actions Area */}
         <div className="quick-actions">
-           <button onClick={() => handleQuickAction("What is the 7-day forecast for Berlin?")}><Thermometer size={14}/> Predict Heatwave</button>
-           <button onClick={() => handleQuickAction("Find cooling spots near me")}><Umbrella size={14}/> Find Shade</button>
-           <button onClick={() => handleQuickAction("What is the air quality in Paris?")}><Sun size={14}/> Air Quality</button>
+           <button onClick={() => {
+             const cities = ['Berlin', 'Paris', 'Madrid', 'Rome', 'Sfax', 'Tokyo']
+             const randomCity = cities[Math.floor(Math.random() * cities.length)]
+             handleQuickAction(`What is the 7-day forecast for ${randomCity}?`)
+           }}><Thermometer size={14}/> Predict Heatwave</button>
+           
+           <button onClick={() => {
+             const cities = ['Athens', 'Dubai', 'Seville', 'Marseille']
+             const randomCity = cities[Math.floor(Math.random() * cities.length)]
+             handleQuickAction(`Find cooling spots near me in ${randomCity}`)
+           }}><Umbrella size={14}/> Find Shade</button>
+           
+           <button onClick={() => {
+             const cities = ['London', 'New York', 'Beijing', 'Los Angeles']
+             const randomCity = cities[Math.floor(Math.random() * cities.length)]
+             handleQuickAction(`What is the air quality in ${randomCity}?`)
+           }}><Sun size={14}/> Air Quality</button>
         </div>
 
         <form className="input-area" onSubmit={sendMessage}>
