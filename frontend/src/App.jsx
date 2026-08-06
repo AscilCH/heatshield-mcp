@@ -349,6 +349,13 @@ function App() {
         .catch(err => console.error("Error fetching default map:", err));
     };
 
+    // Force the location to Mahdia, Tunisia since navigator.geolocation is pulling a mock SF location
+    const fallbackLoc = { lat: 35.5024, lng: 11.0622 };
+    setUserLocation(fallbackLoc);
+    setMarkers(prev => [...prev, { ...fallbackLoc, label: "You are here (Simulated)", type: "user_location" }]);
+    fetchDefaultMap(fallbackLoc.lat, fallbackLoc.lng);
+
+    /*
     if ("geolocation" in navigator) {
       navigator.geolocation.getCurrentPosition(
         (position) => {
@@ -359,18 +366,15 @@ function App() {
         },
         (error) => {
           console.error("Error getting location: ", error);
-          // Fallback location (Karlsruhe, Germany - consistent with map center)
-          const fallbackLoc = { lat: 49.0068, lng: 8.4034 };
+          const fallbackLoc = { lat: 35.5024, lng: 11.0622 };
           setUserLocation(fallbackLoc);
           setMarkers(prev => [...prev, { ...fallbackLoc, label: "You are here (Simulated)", type: "user_location" }]);
           fetchDefaultMap(fallbackLoc.lat, fallbackLoc.lng);
-        }
+        },
+        { timeout: 5000 }
       );
-    } else {
-        const fallbackLoc = { lat: 49.0068, lng: 8.4034 };
-        setUserLocation(fallbackLoc);
-        fetchDefaultMap(fallbackLoc.lat, fallbackLoc.lng);
     }
+    */
   }, [])
 
   useEffect(() => {
