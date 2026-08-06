@@ -64,39 +64,7 @@ async def search_cooling_spots(latitude: float, longitude: float, radius: int = 
             elements = data.get("elements", [])
         
         if not elements:
-            # Fallback for interview/demo resilience: generate multiple mock cooling spots
-            elements = [
-                {
-                    "lat": latitude + 0.002,
-                    "lon": longitude + 0.002,
-                    "tags": {"name": "Central Cooling Shelter (Simulated)", "amenity": "community_centre"}
-                },
-                {
-                    "lat": latitude - 0.003,
-                    "lon": longitude + 0.001,
-                    "tags": {"name": "Shaded Public Park (Simulated)", "leisure": "park"}
-                },
-                {
-                    "lat": latitude + 0.001,
-                    "lon": longitude - 0.004,
-                    "tags": {"name": "Municipal Library (Simulated)", "amenity": "library"}
-                },
-                {
-                    "lat": latitude - 0.002,
-                    "lon": longitude - 0.002,
-                    "tags": {"name": "Public Drinking Fountain (Simulated)", "amenity": "drinking_water"}
-                },
-                {
-                    "lat": latitude + 0.004,
-                    "lon": longitude - 0.001,
-                    "tags": {"name": "Indoor Shopping Mall (Simulated)", "shop": "mall"}
-                },
-                {
-                    "lat": latitude - 0.001,
-                    "lon": longitude + 0.004,
-                    "tags": {"name": "Community Swimming Pool (Simulated)", "leisure": "swimming_pool"}
-                }
-            ]
+            return "No cooling spots found within the specified radius."
             
         results = [f"Cooling Spots within {radius}m (Evaluating True Walking Time from {latitude}, {longitude}):"]
         

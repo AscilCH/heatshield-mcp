@@ -353,7 +353,7 @@ function App() {
     // Force the location to Mahdia, Tunisia since navigator.geolocation is pulling a mock SF location
     const fallbackLoc = { lat: 35.5024, lng: 11.0622 };
     setUserLocation(fallbackLoc);
-    setMarkers(prev => [...prev, { ...fallbackLoc, label: "You are here (Simulated)", type: "user_location" }]);
+    setMarkers(prev => [...prev, { ...fallbackLoc, label: "You are here", type: "user_location" }]);
     fetchDefaultMap(fallbackLoc.lat, fallbackLoc.lng);
 
     /*
@@ -369,7 +369,7 @@ function App() {
           console.error("Error getting location: ", error);
           const fallbackLoc = { lat: 35.5024, lng: 11.0622 };
           setUserLocation(fallbackLoc);
-          setMarkers(prev => [...prev, { ...fallbackLoc, label: "You are here (Simulated)", type: "user_location" }]);
+          setMarkers(prev => [...prev, { ...fallbackLoc, label: "You are here", type: "user_location" }]);
           fetchDefaultMap(fallbackLoc.lat, fallbackLoc.lng);
         },
         { timeout: 5000 }
