@@ -30,10 +30,10 @@ def calculate_haversine(lat1: float, lon1: float, lat2: float, lon2: float) -> f
     a = math.sin(delta_phi / 2.0) ** 2 + math.cos(phi_1) * math.cos(phi_2) * math.sin(delta_lambda / 2.0) ** 2
     return R * (2 * math.atan2(math.sqrt(a), math.sqrt(1 - a)))
 
-async def search_cooling_spots(latitude: float, longitude: float, radius: int = 1000) -> str:
+async def search_cooling_spots(latitude: float, longitude: float, radius: int = 5000) -> str:
     """
     Query the Overpass API to find nearby cooling spots. 
-    Then calculates True Walking Time using OSRM to represent a 15-minute accessibility zone.
+    Then calculates True Walking Time using OSRM to represent accessibility.
     """
     query = f"""
     [out:json][timeout:15];

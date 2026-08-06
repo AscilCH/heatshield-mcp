@@ -243,8 +243,11 @@ async def chat_endpoint(req: ChatRequest):
                         "label": "AI Inspection Point"
                     })
                     
-                mcp_result = await session.call_tool(tool_name, tool_args)
-                tool_output = "\n".join([c.text for c in mcp_result.content if c.type == "text"])
+                try:
+                    mcp_result = await session.call_tool(tool_name, tool_args)
+                    tool_output = "\n".join([c.text for c in mcp_result.content if c.type == "text"])
+                except Exception as e:
+                    tool_output = f"Error executing tool {tool_name}: {str(e)}"
                 
                 # If we found cooling spots, extract their coordinates too!
                 if tool_name == "find_cooling_spots" and not "Error" in tool_output:
