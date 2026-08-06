@@ -339,6 +339,7 @@ function App() {
         .then(res => {
           if (res.data.current_weather) setCurrentWeather(res.data.current_weather);
           if (res.data.uhi_geojson) setUhiGeojson(res.data.uhi_geojson);
+          if (res.data.isochrone_geojson) setIsochroneGeojson(res.data.isochrone_geojson);
           if (res.data.markers && res.data.markers.length > 0) {
              setMarkers(prev => {
                 const nonCooling = prev.filter(m => m.type !== 'cooling_spot');
