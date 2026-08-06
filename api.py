@@ -427,18 +427,8 @@ async def default_map_endpoint(req: dict):
     except:
         pass
         
-    # 4. Fetch Walkability Isochrone
-    iso_res = await session.call_tool('generate_walkability_isochrone', {'latitude': lat, 'longitude': lng, 'minutes': 15})
-    isochrone_geojson = None
-    try:
-        iso_data = json.loads(''.join([c.text for c in iso_res.content if c.type == 'text']))
-        isochrone_geojson = iso_data.get('isochrone_geojson')
-    except:
-        pass
-        
     return {
         'current_weather': current_weather,
         'uhi_geojson': uhi_geojson,
-        'markers': markers,
-        'isochrone_geojson': isochrone_geojson
+        'markers': markers
     }
