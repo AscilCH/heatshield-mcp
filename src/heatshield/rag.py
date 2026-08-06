@@ -1,6 +1,9 @@
 import os
 import glob
 import chromadb
+import httpx
+import pypdf
+import io
 from chromadb.utils import embedding_functions
 
 # Initialize ChromaDB client (local persistence)
@@ -78,3 +81,65 @@ async def search_emergency_protocols(query: str, n_results: int = 3) -> str:
         
     except Exception as e:
         return f"Error querying vector database: {str(e)}"
+
+async def ingest_document_from_url(url: str, filename: str) -> str:
+    """
+    Fetches a document (PDF or Text) from a URL, saves it, extracts text,
+    and ingests it into the ChromaDB vector database dynamically.
+    """
+    try:
+        async with httpx.AsyncClient() as client:
+            response = await client.get(url, timeout=30.0)
+            response.raise_for_status()
+            
+        content = response.content
+        
+        # Ensure docs dir exists
+        os.makedirs(DOCS_DIR, exist_ok=True)
+        file_path = os.path.join(DOCS_DIR, filename)
+        
+        with open(file_path, "wb") as f:
+            f.write(content)
+            
+        text_content = ""
+        
+        # Extract text based on file extension
+        if filename.lower().endswith(".pdf"):
+            pdf_file = io.BytesIO(content)
+            reader = pypdf.PdfReader(pdf_file)
+            for page in reader.pages:
+                text = page.extract_text()
+                if text:
+                    text_content += text + "\n\n"
+        else:
+            # Assume text/markdown
+            text_content = content.decode("utf-8")
+            
+        if not text_content.strip():
+            return f"Failed to extract any text from the downloaded file at {url}"
+            
+        # Chunk the text by paragraphs or large blocks
+        paragraphs = [p.strip() for p in text_content.split("\n\n") if len(p.strip()) > 50]
+        
+        if not paragraphs:
+            return "File downloaded, but no substantial paragraphs found to index."
+            
+        documents = []
+        metadatas = []
+        ids = []
+        
+        for chunk_id, para in enumerate(paragraphs):
+            documents.append(para)
+            metadatas.append({"source": filename, "chunk": chunk_id, "url": url})
+            ids.append(f"{filename}_dynamic_{chunk_id}")
+            
+        collection.add(
+            documents=documents,
+            metadatas=metadatas,
+            ids=ids
+        )
+        
+        return f"Successfully ingested {filename} from {url}. Indexed {len(paragraphs)} paragraphs into the RAG database."
+        
+    except Exception as e:
+        return f"Error ingesting document from URL: {str(e)}"

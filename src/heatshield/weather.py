@@ -53,12 +53,15 @@ async def get_weather_data(latitude: float, longitude: float) -> str:
 
     heat_risk = calculate_heat_risk(feels_like, max_uv)
 
-    return (
-        f"Real-Time Weather at Lat {latitude}, Lon {longitude}:\n"
-        f"- Temperature: {temp}°C\n"
-        f"- Feels Like (Apparent): {feels_like}°C\n"
-        f"- Relative Humidity: {humidity}%\n"
-        f"- Wind Speed: {wind_speed} km/h\n"
-        f"- Peak UV Index today: {max_uv}\n"
-        f"==> CALCULATED HEAT RISK LEVEL: {heat_risk}"
-    )
+    import json
+    return json.dumps({
+        "type": "current_weather",
+        "latitude": latitude,
+        "longitude": longitude,
+        "temperature_celsius": temp,
+        "feels_like_celsius": feels_like,
+        "relative_humidity_percent": humidity,
+        "wind_speed_kmh": wind_speed,
+        "peak_uv_index_today": max_uv,
+        "heat_risk_level": heat_risk
+    })

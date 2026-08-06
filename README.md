@@ -1,84 +1,44 @@
-# HeatShield - GeoAI Urban Heat Wave Assistant
+# HeatShield: Geospatial MCP Agent
 
-![HeatShield](https://img.shields.io/badge/MCP-Server-blue)
-![React](https://img.shields.io/badge/React-Frontend-61DAFB)
-![FastAPI](https://img.shields.io/badge/FastAPI-Backend-009688)
-![Python 3.11+](https://img.shields.io/badge/Python-3.11%2B-green)
+HeatShield is an AI-powered urban heat wave safety assistant designed to demonstrate the power of the **Model Context Protocol (MCP)** in grounding LLM agents with reliable, deterministic geospatial data.
 
-HeatShield is a production-grade full-stack GeoAgent built for real-time urban heat wave safety. 
+## The Problem with LLM "Freehanding" Spatial Data
 
-Cities are struggling to protect vulnerable citizens during extreme heat events. HeatShield solves this by using the **Model Context Protocol (MCP)** to give Large Language Models real-time spatial reasoning. Instead of hallucinating geographic data, the AI autonomously queries real-time Open-Meteo and OpenStreetMap data to assess environmental risks and map out cooling shelters.
+When tasked with geospatial routing, weather analysis, or urban heat island (UHI) mapping, native LLMs suffer from severe hallucinations. They invent streets that don't exist, guess walking distances, and fabricate localized temperatures.
 
-## Architecture
+**HeatShield solves this by entirely decoupling the intelligence layer from the data layer via MCP.** 
+Instead of the LLM generating markdown tables or estimating distances, it acts purely as a reasoning engine that orchestrates exact tool calls to deterministic APIs.
 
-This project is built from scratch as a complete end-to-end GeoAgent system:
+## Architecture & MCP Implementation
 
-1. **MCP Spatial Tools (`src/heatshield/server.py`)**: A standard MCP JSON-RPC server over `stdio` that exposes real-world spatial intelligence tools.
-2. **FastAPI Agent Backend (`api.py`)**: A custom Python backend that implements a true autonomous Agent loop. It connects to the Gemini API and the local MCP server, allowing the LLM to autonomously trigger spatial tools in a `while` loop until it solves the user's problem.
-3. **React Visual Dashboard (`frontend/`)**: A sleek, modern Vite + React web application featuring a glassmorphism chat interface and an interactive Leaflet map that dynamically plots the AI's spatial reasoning in real-time.
+The core of HeatShield is an architecture where the LLM is tightly constrained to use server-side tools. The UI is designed for rapid prototyping, but the true value lies in the backend tool implementation.
 
-## The Spatial Tools
-The MCP server exposes 7 autonomous tools using Open Source Intelligence (OSINT):
-1. `geocode_location`: Converts city/place names to GPS coordinates (via OpenStreetMap Nominatim).
-2. `get_weather_and_heat_risk`: Fetches live temperature, humidity, UV index, and calculates WHO/CDC Heat Risk (via Open-Meteo).
-3. `get_air_quality`: Fetches real-time AQI and particulate matter levels (via Open-Meteo).
-4. `find_cooling_spots`: A spatial query to locate nearby parks, pools, fountains, and libraries (via Overpass QL).
-5. `get_heat_safety_advice`: A localized WHO/CDC knowledge base for activity-specific safety recommendations.
-6. `query_emergency_protocols`: A **Spatial RAG** engine that searches a local ChromaDB Vector Database using `sentence-transformers` to inject official medical documents into the LLM context, preventing hallucination.
-7. `generate_uhi_heatmap`: Extracts raw GeoJSON geometries of buildings, roads, and parks via OpenStreetMap Overpass QL to generate visual Urban Heat Island (UHI) Polygon Heatmaps on the React frontend.
+### Key MCP Tools Built for this Agent:
+- `geocode_location`: Resolves human-readable addresses to exact lat/lon coordinates via Nominatim.
+- `find_cooling_spots`: Queries the Overpass API for real-world infrastructure (parks, water fountains, cooling centers) based on the user's localized coordinates.
+- `get_walking_route`: Uses OSRM to calculate *true* walking distances and times, preventing the LLM from relying on "crow-flies" haversine estimations.
+- `generate_walkability_isochrone`: Generates an exact 15-minute reachable area polygon (GeoJSON).
+- `get_urban_heat_island_heatmap`: Pulls UHI surface temperature data to render deterministic heat blobs on the map.
+- `get_occupational_heat_guidance`: Calculates CDC/NIOSH work/rest cycles based strictly on current local wet-bulb globe temperature (WBGT) data.
 
-## Installation & Setup
+### How it Works
+1. **User asks a question** (e.g. "Find a cool place nearby").
+2. **LLM reasons and calls tools**. It executes `find_cooling_spots` passing the user's localized coordinates.
+3. **MCP Server executes the query**, fetching deterministic JSON data from Overpass.
+4. **FastAPI intercepts the JSON payload**. Instead of letting the LLM hallucinate prose about the data, FastAPI intercepts the structured GeoJSON and streams it directly to the React frontend.
+5. **React Frontend renders natively**. The UI renders the map pins and walking routes using standard Leaflet/React layers, bypassing LLM generation completely.
 
-Ensure you have [uv](https://github.com/astral-sh/uv) (for Python) and Node.js (for React) installed.
+This architecture ensures that a user never receives a hallucinated safety route during an extreme weather event.
 
-```bash
-# Clone the repository
-git clone https://github.com/yourusername/heatshield-mcp.git
-cd heatshield-mcp
-```
+## Tech Stack
+- **Backend**: FastAPI (Python), Model Context Protocol (MCP), Uvicorn, SQLite/DuckDB (Spatial Caching).
+- **Frontend**: React, Vite, React-Leaflet.
+- **External Integrations**: Overpass API, Open-Meteo, OSRM.
 
-## Running the Web Dashboard
+## Setup & Running Locally
 
-You need to run the Backend and the Frontend simultaneously in two separate terminals.
-
-**Terminal 1 (Backend - FastAPI + Agent Loop):**
-```bash
-uv run uvicorn api:app --reload
-```
-
-**Terminal 2 (Frontend - React + Interactive Map):**
-```bash
-cd frontend
-npm install
-npm run dev
-```
-Open your browser to `http://localhost:5173` to interact with the map and the AI.
-
-## Testing the Tools Independently
-
-To prove the validity of the spatial data pipeline (without LLM hallucination), you can test the raw tools directly.
-
-**Option 1: Official MCP Inspector (Web UI)**
-The industry standard way to debug an MCP server.
-```bash
-npx -y @modelcontextprotocol/inspector uv run python src/heatshield/server.py
-```
-
-**Option 2: Raw Python Test Script**
-A terminal script that manually calls the Open-Meteo and Overpass APIs for Sfax, Tunisia.
-```bash
-uv run test_tools.py
-```
-
-## How the AI Thinks (Agent Loop)
-
-When a user asks: *"I am in Karlsruhe looking to swim in a lake"*
-
-1. **Gemini** realizes it needs coordinates, so it calls `geocode_location({'query': 'Karlsruhe'})`.
-2. **The Backend** parses the MCP tool output and plots a marker on the React map.
-3. **Gemini** sees the coordinates and calls `get_weather_and_heat_risk(lat, lon)`.
-4. **Gemini** sees the temperature is 30°C and calls `find_cooling_spots(lat, lon)`.
-5. **The Backend** receives the exact GPS coordinates of lakes (like Epplesee and Baggerseen) from OpenStreetMap and streams them to the Frontend map.
-6. **Gemini** formats a final, human-readable safety summary. 
-
-All of this happens autonomously in a single user request.
+1. Clone the repository.
+2. Install Python dependencies: `uv sync`
+3. Install Frontend dependencies: `cd frontend && npm install`
+4. Start the backend: `uv run uvicorn api:app --reload`
+5. Start the frontend: `cd frontend && npm run dev`

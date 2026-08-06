@@ -13,7 +13,7 @@ We separate our business logic (like geocoding.py) from the server.py.
 This keeps the server clean and makes the tools testable without the MCP wrapper.
 """
 from mcp.server.mcpserver import MCPServer
-from heatshield import geocoding, weather, air_quality, cooling_spots, safety_advice, forecast, rag, heat_map
+from heatshield import geocoding, weather, air_quality, cooling_spots, safety_advice, forecast, rag, heat_map, routing, web_search, isochrone
 
 # Initialize the MCP Server (This is the high-level API, formerly known as FastMCP)
 mcp = MCPServer(
@@ -82,6 +82,18 @@ def get_heat_safety_advice(heat_risk_level: str, activity_type: str) -> str:
     return safety_advice.get_advice(heat_risk_level, activity_type)
 
 @mcp.tool()
+def get_occupational_heat_guidance(temperature: float, humidity_level: str = "moderate") -> str:
+    """
+    Get structured occupational heat safety guidance (work/rest cycles) based on NIOSH standards.
+    Use this specifically when a user asks about safe working conditions, work/rest cycles, or whether it is safe to work outside.
+    
+    Args:
+        temperature: The "feels like" temperature in Celsius.
+        humidity_level: "high", "moderate", or "low".
+    """
+    return safety_advice.get_occupational_heat_guidance(temperature, humidity_level)
+
+@mcp.tool()
 def get_heatwave_forecast(latitude: float, longitude: float, days: int = 7) -> str:
     """
     Fetches a 7-day weather forecast and calculates a Climate Aggravation Risk
@@ -99,12 +111,55 @@ async def query_emergency_protocols(query: str) -> str:
     return await rag.search_emergency_protocols(query)
 
 @mcp.tool()
-async def get_urban_heat_island_heatmap(latitude: float, longitude: float, radius: int = 1500) -> str:
+async def get_urban_heat_island_heatmap(latitude: float, longitude: float, radius: int = 800) -> str:
     """
     Generates a live spatial GeoJSON heatmap of the Urban Heat Island (UHI) effect.
     Use this when the user wants to visualize heat traps (concrete) versus cooling zones (parks).
     """
     return await heat_map.generate_uhi_heatmap(latitude, longitude, radius)
+
+@mcp.tool()
+async def get_walking_route(start_lat: float, start_lon: float, end_lat: float, end_lon: float) -> str:
+    """
+    Calculates a precise walking route between two coordinates.
+    Use this when the user asks for directions or a route to a specific cooling spot.
+    """
+    return await routing.get_walking_route(start_lat, start_lon, end_lat, end_lon)
+
+@mcp.tool()
+async def ingest_emergency_document_url(url: str, filename: str) -> str:
+    """
+    Downloads a document (PDF or Text) from a URL and ingests it into the ChromaDB vector database.
+    Use this when the user asks to learn from a specific WHO/CDC document or urban plan URL.
+    """
+    return await rag.ingest_document_from_url(url, filename)
+
+@mcp.tool()
+async def search_web_for_pdfs(query: str) -> str:
+    """
+    Search the web for official PDF documents. 
+    Always include 'filetype:pdf' and specific domains like 'site:who.int' or 'site:cdc.gov' in your query.
+    If you find a good URL, you can then use ingest_emergency_document_url to learn it.
+    """
+    return await web_search.search_web_for_pdfs(query)
+
+@mcp.tool()
+async def generate_walkability_isochrone(latitude: float, longitude: float, minutes: int = 15) -> str:
+    """
+    Generates a walking isochrone (reachable area polygon) around the user's coordinates.
+    Use this when the user asks how far they can walk safely, or for a safe zone map.
+    """
+    return await isochrone.generate_walkability_isochrone(latitude, longitude, minutes)
+
+@mcp.tool()
+def trigger_symptom_triage_ui() -> str:
+    """
+    Triggers the interactive symptom triage UI for the user.
+    Use this immediately when the user says they don't feel well, asks about heat exhaustion vs heat stroke, or lists symptoms.
+    Do NOT ask them questions or list symptoms yourself; just call this tool so the UI handles the triage.
+    """
+    import json
+    return json.dumps({"type": "symptom_triage_ui"})
 
 # HOW MCP COMMUNICATION WORKS:
 # When we call mcp.run(transport="stdio"), the server enters an infinite loop.
