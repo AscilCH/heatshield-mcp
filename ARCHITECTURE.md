@@ -32,7 +32,7 @@ When the user asks a question, Gemini has access to the following deterministic 
 1. `geocode_location`: Resolves string addresses into exact coordinates using Nominatim.
 2. `search_cooling_spots`: Queries OSM for nearby parks and fountains, and uses **OSRM (Open Source Routing Machine)** to calculate true walking distances (not crow-flies distance).
 3. `generate_uhi_heatmap`: **(Advanced)** Extracts exact geographic polygon geometries (buildings, parking lots vs forests, parks) using the Overpass API. It uses a **DuckDB Spatial Cache** to store processed 1km grids locally with a **30-day TTL (Time To Live)**, preventing API rate limits and dropping load times from 10s to 50ms while ensuring city infrastructure stays up to date.
-4. `get_walking_route`: Uses OSRM to generate a precise GeoJSON LineString walking path to safely navigate the user to shade.
+4. `get_walking_route`: **(Advanced)** Uses OSRM to generate multiple alternative walking paths, and uses `shapely` geometric intersection against the DuckDB UHI cache to calculate "heat exposure." The tool returns a Shade-Optimized route that algorithmically avoids hot areas.
 
 ### 🌤️ Real-Time & Predictive Climate Data
 5. `get_weather_and_heat_risk`: Fetches live Open-Meteo data and calculates WHO/CDC Risk Levels.
@@ -195,73 +195,4 @@ sequenceDiagram
     Frontend-->>User: Display answer with citations
 ```
 
----
 
-## 4. Security & Abuse Prevention
-
-Exposing autonomous LLM agents to the public web carries significant security risks, primarily Prompt Injection (Jailbreaking) and Denial of Wallet (DoW) attacks. HeatShield implements a multi-layered **Middleware Firewall** pipeline directly inside the FastAPI gateway (`api.py` & `security.py`).
-
-### D. Middleware Security Firewall Diagram
-This sequence diagram illustrates how an incoming request is sanitized and rate-limited by the middleware before the LLM is ever invoked.
-
-```mermaid
-sequenceDiagram
-    actor Attacker
-    participant API as FastAPI Gateway
-    participant Auth as API Key Auth
-    participant RateLimit as Token Bucket (5 req/min)
-    participant Guard as Middleware Firewall (Local AI)
-    participant Gemini as LLM Engine (Gemini)
-
-    Attacker->>API: POST /api/chat "Ignore instructions..."
-    
-    rect rgb(60, 10, 10)
-    note right of API: 🛡️ STAGE 1: MIDDLEWARE FIREWALL (Local CPU)
-    API->>Auth: Check X-API-Key Header
-    Auth-->>API: 200 OK
-    API->>RateLimit: Check IP Request Rate (Middleware)
-    RateLimit-->>API: 200 OK
-    API->>Guard: scan("Ignore instructions...")
-    Guard->>Guard: 1. PromptGuard (DeBERTa-v3)
-    Guard-->>API: 🚨 INJECTION DETECTED (Score: 0.99)
-    API->>Guard: scan("give me fft in java")
-    Guard->>Guard: 2. TopicGuard (Zero-Shot MNLI)
-    Guard-->>API: 🚨 OFF-TOPIC DETECTED (Score: 0.85)
-    end
-    
-    API-->>Attacker: 400 Bad Request (Blocked locally)
-    
-    Attacker->>API: POST /api/chat "can u tell me how to sovle dijkstra"
-    API->>Guard: scan(...)
-    Guard->>Guard: TopicGuard classifies as 'Conversational Pleasantry' due to syntax
-    Guard-->>API: ✅ PASS
-    API->>Gemini: Forward to LLM Engine
-    
-    rect rgb(30, 41, 59)
-    note right of API: 🧠 STAGE 2: STRICT PERSONA ENFORCEMENT (LLM)
-    Gemini->>Gemini: Parse Prompt: "You MUST absolutely refuse off-topic..."
-    Gemini->>Gemini: Detects Dijkstra is programming.
-    Gemini-->>Attacker: "I must politely decline that request..."
-    end
-```
-
-### 🛡️ Defense-in-Depth Security (Multi-Layered Protection)
-To prevent adversarial attacks and persona drift without incurring massive API token costs, the system implements a **Defense-in-Depth** strategy.
-
-#### Layer 1: Middleware Firewall (Local CPU)
-Intercepts all WebSocket messages locally using a two-stage Hugging Face AI pipeline (`src/heatshield/security.py`).
-1. **PromptGuard**: `protectai/deberta-v3-base-prompt-injection-v2` scans for malicious prompt injections ("Ignore all previous instructions...").
-2. **TopicGuard**: `typeform/distilbert-base-uncased-mnli` (Zero-Shot Classifier) scores the prompt for domain relevance. If the query is off-topic (e.g. "give me fft in java"), it is blocked.
-If either AI model detects a violation, it throws an `HTTPException(400)` and terminates the request *before* it reaches the LLM layer, saving money and preventing jailbreaks.
-
-#### Layer 2: LLM Persona Enforcement (The Fail-Safe)
-Zero-Shot classifiers are susceptible to conversational syntax (e.g., classifying "Can you tell me how to..." as a casual greeting, allowing it to bypass the TopicGuard). To catch these edge cases, the Gemini LLM is hardened with a strict **Persona Enforcement Prompt**. If an off-topic query slips through the firewall, the LLM itself acts as the final fail-safe and refuses the request.
-
-### 🛑 Denial of Wallet Protection (Rate Limiting Middleware)
-To prevent malicious bots from spamming the LLM endpoint and running up the Gemini API bill, the backend implements an in-memory **Token Bucket Rate Limiter Middleware**. It strictly enforces a limit of **5 requests per minute per IP Address** (`429 Too Many Requests`).
-
-### 🔑 Authentication
-The API strictly enforces an `X-API-Key` header requirement via FastAPI Dependencies, ensuring only the authenticated React frontend can trigger the expensive agentic loops.
-
-### ♾️ Agentic Loop Hard Boundaries
-Autonomous agents (`while msg.tool_calls:`) are prone to getting stuck in infinite tool loops if they encounter unexpected API errors, which can burn thousands of tokens in seconds. HeatShield enforces a strict **Hard Boundary of 10 tool iterations per request**. If the agent fails to solve the task within 10 steps, the backend forcibly kills the loop, sends an emergency security alert to the chat, and returns the data gathered so far.

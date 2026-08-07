@@ -10,7 +10,7 @@ from openai import AsyncOpenAI
 from mcp.client.stdio import stdio_client, StdioServerParameters
 from mcp.client.session import ClientSession
 import typing
-from src.heatshield.security import verify_api_key, RateLimiter, PromptGuard, TopicGuard
+from src.heatshield.security import verify_api_key, RateLimiter
 
 GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY", "your-api-key-here")
 client = AsyncOpenAI(
@@ -172,12 +172,6 @@ chat_rate_limiter = RateLimiter(requests_per_minute=5)
 
 @app.post("/api/chat", dependencies=[Depends(verify_api_key), Depends(chat_rate_limiter)])
 async def chat_endpoint(req: ChatRequest):
-    # 1. PromptGuard: Check for Prompt Injection before processing
-    PromptGuard.scan(req.message)
-    
-    # 2. TopicGuard: Check for off-topic queries before processing
-    TopicGuard.scan(req.message)
-    
     session = app_state.get('session')
     llm_tools = app_state.get('llm_tools')
     
