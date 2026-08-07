@@ -666,7 +666,7 @@ function App() {
       )}
       
       {routeGeojson?.features?.[0]?.properties?.optimized && (
-        <div className="route-safety-callout" style={{ background: '#ecfdf5', color: '#065f46', borderColor: '#34d399', top: '70px', zIndex: 900 }}>
+        <div className="route-safety-callout" style={{ bottom: 'auto', top: '70px', background: '#ecfdf5', color: '#065f46', borderColor: '#34d399', zIndex: 900 }}>
            <MapPin size={20} />
            <span>This route is <strong>Shade-Optimized</strong>. The agent intersected potential paths with the UHI heatmap to minimize heat exposure.</span>
         </div>
