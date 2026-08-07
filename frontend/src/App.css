@@ -932,6 +932,20 @@ body {
   background: #7f1d1d;
 }
 
+.triage-btn.selected {
+  background: rgba(56, 189, 248, 0.2);
+  border-color: #38bdf8;
+  color: #38bdf8;
+  box-shadow: 0 0 10px rgba(56, 189, 248, 0.2);
+}
+
+.triage-btn.danger-triage.selected {
+  background: rgba(239, 68, 68, 0.2);
+  border-color: #ef4444;
+  color: #ef4444;
+  box-shadow: 0 0 10px rgba(239, 68, 68, 0.2);
+}
+
 .triage-emergency-alert {
   background: #450a0a;
   border-radius: 8px;
