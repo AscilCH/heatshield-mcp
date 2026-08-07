@@ -1,0 +1,37 @@
+FROM python:3.11-slim
+
+# Set non-interactive timezone and avoid prompts
+ENV DEBIAN_FRONTEND=noninteractive
+ENV PYTHONUNBUFFERED=1
+
+# Install system dependencies needed for native extensions (shapely, DuckDB, etc)
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    build-essential \
+    git \
+    curl \
+    && rm -rf /var/lib/apt/lists/*
+
+WORKDIR /app
+
+# Install uv for blazingly fast python package installation
+RUN pip install --no-cache-dir uv
+
+# Copy dependency files first for caching
+COPY pyproject.toml README.md ./
+
+# Copy application code
+COPY src/ ./src/
+COPY api.py ./
+
+# Install project dependencies system-wide
+RUN uv pip install --system -e .
+
+# Create directory for persistent databases (ChromaDB, DuckDB)
+RUN mkdir -p /app/src/heatshield/.chroma_db
+RUN touch /app/src/heatshield/.spatial_cache.duckdb
+
+# Expose FastAPI default port
+EXPOSE 8000
+
+# Command to run the application
+CMD ["uvicorn", "api:app", "--host", "0.0.0.0", "--port", "8000"]
