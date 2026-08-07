@@ -1,145 +1,115 @@
-import os
-import glob
 import chromadb
+from sentence_transformers import SentenceTransformer
 import httpx
-import pypdf
+from pypdf import PdfReader
 import io
-from chromadb.utils import embedding_functions
+import os
+import json
 
-# Initialize ChromaDB client (local persistence)
-CHROMA_DB_DIR = os.path.join(os.path.dirname(__file__), ".chroma_db")
-DOCS_DIR = os.path.join(os.path.dirname(__file__), "emergency_docs")
+# Initialize ChromaDB in local persistent mode
+CHROMA_PERSIST_DIR = os.path.join(os.path.dirname(__file__), ".chroma_db")
+chroma_client = chromadb.PersistentClient(path=CHROMA_PERSIST_DIR)
+collection = chroma_client.get_or_create_collection(name="emergency_protocols")
 
-client = chromadb.PersistentClient(path=CHROMA_DB_DIR)
+# Initialize Embedding Model (Lazy load to save memory on import)
+_embedding_model = None
 
-# Use default embedding function (sentence-transformers under the hood)
-sentence_transformer_ef = embedding_functions.DefaultEmbeddingFunction()
+def get_embedding_model():
+    global _embedding_model
+    if _embedding_model is None:
+        print("Loading SentenceTransformer model 'all-MiniLM-L6-v2'...")
+        _embedding_model = SentenceTransformer('all-MiniLM-L6-v2')
+    return _embedding_model
 
-collection = client.get_or_create_collection(
-    name="emergency_protocols",
-    embedding_function=sentence_transformer_ef
-)
+def chunk_text(text: str, chunk_size: int = 1000, overlap: int = 200) -> list[str]:
+    """Splits text into overlapping chunks of a specific character size."""
+    chunks = []
+    start = 0
+    while start < len(text):
+        end = start + chunk_size
+        chunks.append(text[start:end])
+        start += (chunk_size - overlap)
+    return chunks
 
-def _load_documents():
-    """Reads all markdown files in the emergency_docs folder and adds them to Chroma."""
-    # Check if we already loaded them (simple check)
-    if collection.count() > 0:
-        return
+async def download_and_extract_pdf(url: str) -> str:
+    """Downloads a PDF from a URL and extracts its raw text."""
+    async with httpx.AsyncClient() as client:
+        response = await client.get(url, follow_redirects=True, timeout=30.0)
+        response.raise_for_status()
         
-    doc_paths = glob.glob(os.path.join(DOCS_DIR, "*.md"))
-    if not doc_paths:
-        return
-        
-    documents = []
-    metadatas = []
-    ids = []
+    pdf_bytes = io.BytesIO(response.content)
+    reader = PdfReader(pdf_bytes)
     
-    for doc_id, doc_path in enumerate(doc_paths):
-        with open(doc_path, "r", encoding="utf-8") as f:
-            content = f.read()
-            filename = os.path.basename(doc_path)
+    text = ""
+    for page in reader.pages:
+        extracted = page.extract_text()
+        if extracted:
+            text += extracted + "\n"
             
-            # Simple chunking by paragraph for better RAG retrieval
-            paragraphs = [p.strip() for p in content.split("\n\n") if p.strip()]
+    return text
+
+async def ingest_document(url: str) -> str:
+    """Orchestrates downloading, extracting, chunking, embedding, and storing a PDF."""
+    try:
+        print(f"Downloading PDF from {url}...")
+        raw_text = await download_and_extract_pdf(url)
+        if not raw_text.strip():
+            return json.dumps({"error": "Failed to extract text from PDF."})
             
-            for chunk_id, para in enumerate(paragraphs):
-                documents.append(para)
-                metadatas.append({"source": filename, "chunk": chunk_id})
-                ids.append(f"{filename}_{chunk_id}")
-                
-    if documents:
+        print("Chunking text...")
+        chunks = chunk_text(raw_text)
+        
+        print(f"Generating embeddings for {len(chunks)} chunks...")
+        model = get_embedding_model()
+        embeddings = model.encode(chunks).tolist()
+        
+        # Create IDs for each chunk
+        doc_id = url.split("/")[-1][:20] or "doc"
+        ids = [f"{doc_id}_{i}" for i in range(len(chunks))]
+        metadatas = [{"source": url, "chunk_index": i} for i in range(len(chunks))]
+        
+        print("Saving to ChromaDB...")
         collection.add(
-            documents=documents,
+            embeddings=embeddings,
+            documents=chunks,
             metadatas=metadatas,
             ids=ids
         )
+        
+        return json.dumps({
+            "status": "success",
+            "message": f"Successfully ingested {url}",
+            "chunks_stored": len(chunks)
+        })
+        
+    except Exception as e:
+        return json.dumps({"error": f"Failed to ingest document: {str(e)}"})
 
-# Ensure docs are loaded on startup
-_load_documents()
-
-async def search_emergency_protocols(query: str, n_results: int = 3) -> str:
-    """
-    Semantic search over emergency protocols (WHO, CDC, local plans).
-    Returns the most relevant text chunks and their source documents.
-    """
+async def query_protocols(query: str, n_results: int = 3) -> str:
+    """Embeds the query and searches ChromaDB for semantically similar chunks."""
     try:
+        model = get_embedding_model()
+        query_embedding = model.encode([query]).tolist()
+        
         results = collection.query(
-            query_texts=[query],
+            query_embeddings=query_embedding,
             n_results=n_results
         )
         
-        if not results['documents'] or not results['documents'][0]:
-            return "No relevant emergency protocols found."
+        if not results['documents'] or len(results['documents']) == 0 or len(results['documents'][0]) == 0:
+            return json.dumps({"message": "No relevant protocols found in the database. Consider using ingest_emergency_document_url to add some."})
             
-        formatted_results = ["# Retrieved Emergency Protocols\n"]
+        retrieved_chunks = results['documents'][0]
+        sources = [m.get("source", "Unknown") for m in results['metadatas'][0]]
         
-        for doc, meta in zip(results['documents'][0], results['metadatas'][0]):
-            source = meta.get("source", "Unknown Document")
-            formatted_results.append(f"**Source:** {source}\n{doc}\n")
-            
-        return "\n".join(formatted_results)
+        response = {
+            "query": query,
+            "results": [
+                {"source": sources[i], "content": retrieved_chunks[i]} 
+                for i in range(len(retrieved_chunks))
+            ]
+        }
+        return json.dumps(response)
         
     except Exception as e:
-        return f"Error querying vector database: {str(e)}"
-
-async def ingest_document_from_url(url: str, filename: str) -> str:
-    """
-    Fetches a document (PDF or Text) from a URL, saves it, extracts text,
-    and ingests it into the ChromaDB vector database dynamically.
-    """
-    try:
-        async with httpx.AsyncClient() as client:
-            response = await client.get(url, timeout=30.0)
-            response.raise_for_status()
-            
-        content = response.content
-        
-        # Ensure docs dir exists
-        os.makedirs(DOCS_DIR, exist_ok=True)
-        file_path = os.path.join(DOCS_DIR, filename)
-        
-        with open(file_path, "wb") as f:
-            f.write(content)
-            
-        text_content = ""
-        
-        # Extract text based on file extension
-        if filename.lower().endswith(".pdf"):
-            pdf_file = io.BytesIO(content)
-            reader = pypdf.PdfReader(pdf_file)
-            for page in reader.pages:
-                text = page.extract_text()
-                if text:
-                    text_content += text + "\n\n"
-        else:
-            # Assume text/markdown
-            text_content = content.decode("utf-8")
-            
-        if not text_content.strip():
-            return f"Failed to extract any text from the downloaded file at {url}"
-            
-        # Chunk the text by paragraphs or large blocks
-        paragraphs = [p.strip() for p in text_content.split("\n\n") if len(p.strip()) > 50]
-        
-        if not paragraphs:
-            return "File downloaded, but no substantial paragraphs found to index."
-            
-        documents = []
-        metadatas = []
-        ids = []
-        
-        for chunk_id, para in enumerate(paragraphs):
-            documents.append(para)
-            metadatas.append({"source": filename, "chunk": chunk_id, "url": url})
-            ids.append(f"{filename}_dynamic_{chunk_id}")
-            
-        collection.add(
-            documents=documents,
-            metadatas=metadatas,
-            ids=ids
-        )
-        
-        return f"Successfully ingested {filename} from {url}. Indexed {len(paragraphs)} paragraphs into the RAG database."
-        
-    except Exception as e:
-        return f"Error ingesting document from URL: {str(e)}"
+        return json.dumps({"error": f"Failed to query protocols: {str(e)}"})

@@ -151,7 +151,7 @@ function AlertBanner({ alert, onClose }) {
   )
 }
 
-function SymptomTriageCard({ onSubmit }) {
+function SymptomTriageCard({ onSubmit, onEmergency }) {
   const [selectedSymptoms, setSelectedSymptoms] = useState([]);
 
   const toggleSymptom = (symptom) => {
@@ -166,6 +166,10 @@ function SymptomTriageCard({ onSubmit }) {
     if (selectedSymptoms.length > 0) {
       onSubmit(selectedSymptoms);
     }
+  };
+
+  const handleEmergency = () => {
+    onEmergency(selectedSymptoms.length > 0 ? selectedSymptoms : ["Unknown critical symptoms"]);
   };
 
   return (
@@ -224,7 +228,7 @@ function SymptomTriageCard({ onSubmit }) {
         >
           Get advice
         </button>
-        <button className="triage-call-btn" style={{ flex: 1 }}>
+        <button className="triage-call-btn" style={{ flex: 1 }} onClick={handleEmergency}>
           Call emergency services
         </button>
       </div>
@@ -826,7 +830,10 @@ function App() {
             {symptomTriage && (
                <div className="message assistant">
                   <div className="message-content" style={{ background: 'transparent', padding: 0, border: 'none' }}>
-                     <SymptomTriageCard onSubmit={(symptoms) => submitMessage(`I am experiencing: ${symptoms.join(', ')}. What should I do?`)} />
+                     <SymptomTriageCard 
+                        onSubmit={(symptoms) => submitMessage(`I am experiencing: ${symptoms.join(', ')}. What should I do?`)} 
+                        onEmergency={(symptoms) => submitMessage(`EMERGENCY: I am calling emergency services! My symptoms are: ${symptoms.join(', ')}`)} 
+                     />
                   </div>
                </div>
             )}

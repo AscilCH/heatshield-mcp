@@ -108,7 +108,7 @@ async def query_emergency_protocols(query: str) -> str:
     Search official medical and urban heat emergency protocols using semantic vector search (RAG).
     Use this when the user asks for safety guidelines, medical advice, or urban planning rules.
     """
-    return await rag.search_emergency_protocols(query)
+    return await rag.query_protocols(query)
 
 @mcp.tool()
 async def get_urban_heat_island_heatmap(latitude: float, longitude: float, radius: int = 5000) -> str:
@@ -127,12 +127,12 @@ async def get_walking_route(start_lat: float, start_lon: float, end_lat: float, 
     return await routing.get_walking_route(start_lat, start_lon, end_lat, end_lon)
 
 @mcp.tool()
-async def ingest_emergency_document_url(url: str, filename: str) -> str:
+async def ingest_emergency_document_url(url: str) -> str:
     """
     Downloads a document (PDF or Text) from a URL and ingests it into the ChromaDB vector database.
     Use this when the user asks to learn from a specific WHO/CDC document or urban plan URL.
     """
-    return await rag.ingest_document_from_url(url, filename)
+    return await rag.ingest_document(url)
 
 @mcp.tool()
 async def search_web_for_pdfs(query: str) -> str:
