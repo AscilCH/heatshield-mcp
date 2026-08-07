@@ -161,6 +161,30 @@ def trigger_symptom_triage_ui() -> str:
     import json
     return json.dumps({"type": "symptom_triage_ui"})
 
+@mcp.tool()
+async def broadcast_emergency_alert(severity: str, message: str) -> str:
+    """
+    Triggers a global emergency siren and flashing red screen across all connected frontend clients.
+    Use this ONLY when the user is experiencing a critical medical emergency (e.g. heat stroke, calling 911).
+    
+    Args:
+        severity: "CRITICAL" or "WARNING"
+        message: The emergency message to broadcast.
+    """
+    import httpx
+    import json
+    try:
+        async with httpx.AsyncClient() as client:
+            response = await client.post(
+                "http://localhost:8000/api/trigger-alert",
+                json={"severity": severity, "message": message},
+                timeout=5.0
+            )
+            response.raise_for_status()
+            return json.dumps({"status": "Emergency alert broadcasted successfully!"})
+    except Exception as e:
+        return json.dumps({"error": f"Failed to broadcast alert: {str(e)}"})
+
 # HOW MCP COMMUNICATION WORKS:
 # When we call mcp.run(transport="stdio"), the server enters an infinite loop.
 # It listens on stdin for requests from the LLM client, routes them to the 
