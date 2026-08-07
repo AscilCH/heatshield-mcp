@@ -639,7 +639,7 @@ function App() {
             <GeoJSON 
               key={"route" + Date.now()} 
               data={routeGeojson} 
-              style={{ color: '#3b82f6', weight: 5, fillOpacity: 0 }}
+              style={(feature) => ({ color: feature.properties?.color || '#3b82f6', weight: 5, fillOpacity: 0 })}
             />
           )}
           {isochroneGeojson && (
@@ -662,6 +662,13 @@ function App() {
         <div className="route-safety-callout">
            <MapPin size={20} />
            <span>Nearest cool spot is outside the hottest zone, but longer walking routes cross an extreme-heat area right now. Proceed with caution.</span>
+        </div>
+      )}
+      
+      {routeGeojson?.features?.[0]?.properties?.optimized && (
+        <div className="route-safety-callout" style={{ background: '#ecfdf5', color: '#065f46', borderColor: '#34d399', top: '70px', zIndex: 900 }}>
+           <MapPin size={20} />
+           <span>This route is <strong>Shade-Optimized</strong>. The agent intersected potential paths with the UHI heatmap to minimize heat exposure.</span>
         </div>
       )}
       
