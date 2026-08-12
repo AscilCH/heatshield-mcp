@@ -5,6 +5,7 @@ import { Navigation, Sun, PlusSquare, MapPin, Heart, Briefcase, User, MoreHorizo
 import axios from 'axios'
 import 'leaflet/dist/leaflet.css'
 import L from 'leaflet'
+import DOMPurify from 'dompurify';
 import './App.css'
 
 // API URL: uses environment variable in production, falls back to localhost for dev
@@ -577,12 +578,13 @@ function App() {
 
       // Enhanced markdown parsing for standard prose
       const processMarkdown = (str) => {
-          return str
+          const rawHtml = str
             .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
             .replace(/(?<!\*)\*(?!\*)(.*?)\*/g, '<em>$1</em>') // Italic (single asterisk, but not double)
-            .replace(/\n\*/g, '<br/>•') // Fix bullet points starting with *
-            .replace(/\n-/g, '<br/>•')  // Fix bullet points starting with -
+            .replace(/\n\*/g, '<br/> ') // Fix bullet points starting with *
+            .replace(/\n-/g, '<br/> ')  // Fix bullet points starting with -
             .replace(/\n/g, '<br/>');
+          return DOMPurify.sanitize(rawHtml);
       };
       
       // If it doesn't start with a header, it's just normal text

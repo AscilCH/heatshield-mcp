@@ -125,18 +125,6 @@ def get_heat_safety_advice(heat_risk_level: str, activity_type: str) -> str:
     return safety_advice.get_advice(heat_risk_level, activity_type)
 
 @mcp.tool()
-def get_occupational_heat_guidance(temperature: float, humidity_level: str = "moderate") -> str:
-    """
-    Get structured occupational heat safety guidance (work/rest cycles) based on NIOSH standards.
-    Use this specifically when a user asks about safe working conditions, work/rest cycles, or whether it is safe to work outside.
-    
-    Args:
-        temperature: The "feels like" temperature in Celsius.
-        humidity_level: "high", "moderate", or "low".
-    """
-    return safety_advice.get_occupational_heat_guidance(temperature, humidity_level)
-
-@mcp.tool()
 def get_heatwave_forecast(latitude: float, longitude: float, days: int = 7) -> str:
     """
     Fetches a 7-day weather forecast and calculates a Climate Aggravation Risk
@@ -214,19 +202,12 @@ async def broadcast_emergency_alert(severity: str, message: str) -> str:
         severity: "CRITICAL" or "WARNING"
         message: The emergency message to broadcast.
     """
-    import httpx
     import json
-    try:
-        async with httpx.AsyncClient() as client:
-            response = await client.post(
-                "http://localhost:8000/api/trigger-alert",
-                json={"severity": severity, "message": message},
-                timeout=5.0
-            )
-            response.raise_for_status()
-            return json.dumps({"status": "Emergency alert broadcasted successfully!"})
-    except Exception as e:
-        return json.dumps({"error": f"Failed to broadcast alert: {str(e)}"})
+    return json.dumps({
+        "type": "trigger_emergency_broadcast",
+        "severity": severity,
+        "message": message
+    })
 
 # HOW MCP COMMUNICATION WORKS:
 # When we call mcp.run(transport="stdio"), the server enters an infinite loop.

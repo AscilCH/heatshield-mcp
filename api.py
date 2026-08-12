@@ -258,7 +258,7 @@ async def chat_endpoint(req: ChatRequest):
                     tool_output = f"Error executing tool {tool_name}: {str(e)}"
                 
                 # If we found cooling spots, extract their coordinates too!
-                if tool_name == "find_cooling_spots" and not "Error" in tool_output:
+                if tool_name == "find_cooling_spots" and not "error" in tool_output.lower():
                     try:
                         spots = json.loads(tool_output)
                         if 'elements' in spots:
@@ -278,7 +278,7 @@ async def chat_endpoint(req: ChatRequest):
                         pass
                 
                 # If we got a forecast, extract the daily forecast data to render a chart!
-                if tool_name == "get_heatwave_forecast" and not "error" in tool_output:
+                if tool_name == "get_heatwave_forecast" and not "error" in tool_output.lower():
                     try:
                         forecast_res = json.loads(tool_output)
                         if 'daily_forecast' in forecast_res:
@@ -286,7 +286,7 @@ async def chat_endpoint(req: ChatRequest):
                     except:
                         pass
                         
-                if tool_name == "get_air_quality_forecast" and not "error" in tool_output:
+                if tool_name == "get_air_quality_forecast" and not "error" in tool_output.lower():
                     try:
                         aq_res = json.loads(tool_output)
                         if 'aq_forecast' in aq_res:
@@ -294,7 +294,7 @@ async def chat_endpoint(req: ChatRequest):
                     except:
                         pass
                         
-                if tool_name == "get_urban_heat_island_heatmap" and not "error" in tool_output:
+                if tool_name == "get_urban_heat_island_heatmap" and not "error" in tool_output.lower():
                     try:
                         heatmap_res = json.loads(tool_output)
                         if 'heatmap_geojson' in heatmap_res:
@@ -302,7 +302,7 @@ async def chat_endpoint(req: ChatRequest):
                     except:
                         pass
                         
-                if tool_name == "get_walking_route" and not "error" in tool_output:
+                if tool_name == "get_walking_route" and not "error" in tool_output.lower():
                     try:
                         route_res = json.loads(tool_output)
                         if 'route_geojson' in route_res:
@@ -310,7 +310,7 @@ async def chat_endpoint(req: ChatRequest):
                     except:
                         pass
                 
-                if tool_name == "generate_walkability_isochrone" and not "error" in tool_output:
+                if tool_name == "generate_walkability_isochrone" and not "error" in tool_output.lower():
                     try:
                         iso_res = json.loads(tool_output)
                         if 'isochrone_geojson' in iso_res:
@@ -335,6 +335,21 @@ async def chat_endpoint(req: ChatRequest):
                         
                 if tool_name == "trigger_symptom_triage_ui":
                     symptom_triage_ui = True
+                    
+                if tool_name == "broadcast_emergency_alert" and not "error" in tool_output.lower():
+                    try:
+                        alert_res = json.loads(tool_output)
+                        if alert_res.get('type') == 'trigger_emergency_broadcast':
+                            payload = json.dumps({
+                                "type": "emergency_alert",
+                                "severity": alert_res.get('severity'),
+                                "message": alert_res.get('message')
+                            })
+                            # We can't await this cleanly inside the sync generator block without some hackery,
+                            # wait, event_generator is async! We can await it.
+                            await manager.broadcast(payload)
+                    except:
+                        pass
                 
                 # IMPORTANT: Truncate massive GeoJSON payloads before sending back to LLM to prevent TPM Rate Limits!
                 llm_tool_output = tool_output
@@ -346,6 +361,8 @@ async def chat_endpoint(req: ChatRequest):
                         parsed_output['isochrone_geojson'] = "GeoJSON data successfully extracted and sent to frontend."
                     if 'route_geojson' in parsed_output:
                         parsed_output['route_geojson'] = "GeoJSON data successfully extracted and sent to frontend."
+                    if 'elements' in parsed_output and len(str(parsed_output['elements'])) > 1000:
+                        parsed_output['elements'] = "List of cooling spots extracted and sent to frontend UI."
                     llm_tool_output = json.dumps(parsed_output)
                 except:
                     pass
