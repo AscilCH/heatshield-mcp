@@ -13,7 +13,7 @@ We separate our business logic (like geocoding.py) from the server.py.
 This keeps the server clean and makes the tools testable without the MCP wrapper.
 """
 from mcp.server.mcpserver import MCPServer
-from heatshield import geocoding, weather, air_quality, cooling_spots, safety_advice, forecast, rag, heat_map, routing, web_search, isochrone
+from heatshield import geocoding, weather, air_quality, cooling_spots, safety_advice, forecast, rag, heat_map, routing, web_search, isochrone, occupational
 
 # Initialize the MCP Server (This is the high-level API, formerly known as FastMCP)
 mcp = MCPServer(
@@ -47,6 +47,47 @@ async def get_weather_and_heat_risk(latitude: float, longitude: float) -> str:
     Requires latitude and longitude.
     """
     return await weather.get_weather_data(latitude, longitude)
+
+import json
+@mcp.tool()
+async def get_occupational_heat_guidance(latitude: float, longitude: float, workload_description: str) -> str:
+    """
+    Calculates Wet Bulb Globe Temperature (WBGT) and fetches NIOSH work/rest cycles.
+    MUST be used whenever a user asks about working outside, occupational safety, 
+    construction, roofing, or any physical labor.
+    
+    Args:
+        latitude: The user's latitude
+        longitude: The user's longitude
+        workload_description: Natural language description of the work (e.g. "laying asphalt")
+    """
+    # 1. Fetch current weather for the location
+    weather_data_str = await weather.get_weather_data(latitude, longitude)
+    if "Error" in weather_data_str:
+        return weather_data_str
+        
+    w = json.loads(weather_data_str)
+    temp = w.get("temperature_celsius", 25.0)
+    hum = w.get("humidity_percent", 50.0)
+    wind = w.get("wind_speed_kmh", 5.0)
+    solar = w.get("solar_radiation_wm2", 500.0)
+    
+    # 2. Calculate WBGT
+    wbgt = occupational.calculate_wbgt(temp, hum, wind, solar)
+    
+    # 3. Map workload and get NIOSH guidelines
+    workload = occupational.map_workload(workload_description)
+    guidance = occupational.get_niosh_guidance(wbgt, workload)
+    
+    # Add raw inputs for transparency
+    guidance["inputs"] = {
+        "temperature_celsius": temp,
+        "humidity_percent": hum,
+        "wind_speed_kmh": wind,
+        "solar_radiation_wm2": solar
+    }
+    
+    return json.dumps(guidance)
 
 @mcp.tool()
 async def get_air_quality(latitude: float, longitude: float) -> str:

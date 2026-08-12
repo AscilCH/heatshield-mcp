@@ -25,7 +25,7 @@ async def get_weather_data(latitude: float, longitude: float) -> str:
                 params={
                     "latitude": latitude,
                     "longitude": longitude,
-                    "current": "temperature_2m,relative_humidity_2m,apparent_temperature,wind_speed_10m",
+                    "current": "temperature_2m,relative_humidity_2m,apparent_temperature,wind_speed_10m,shortwave_radiation",
                     "hourly": "uv_index",
                     "timezone": "auto",
                     "forecast_days": 1
@@ -45,6 +45,7 @@ async def get_weather_data(latitude: float, longitude: float) -> str:
     feels_like = current.get("apparent_temperature", 0.0)
     humidity = current.get("relative_humidity_2m", 0.0)
     wind_speed = current.get("wind_speed_10m", 0.0)
+    solar_rad = current.get("shortwave_radiation", 0.0)
     
     # Extract the max UV index for the day to represent the worst-case risk
     hourly = data.get("hourly", {})
@@ -60,8 +61,9 @@ async def get_weather_data(latitude: float, longitude: float) -> str:
         "longitude": longitude,
         "temperature_celsius": temp,
         "feels_like_celsius": feels_like,
-        "relative_humidity_percent": humidity,
+        "humidity_percent": humidity,
         "wind_speed_kmh": wind_speed,
-        "peak_uv_index_today": max_uv,
+        "solar_radiation_wm2": solar_rad,
+        "max_uv_index_today": max_uv,
         "heat_risk_level": heat_risk
     })

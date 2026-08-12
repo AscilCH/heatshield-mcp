@@ -1,0 +1,26 @@
+# NIOSH Recommended Alert Limits (RAL) for Unacclimatized Workers
+
+## Light Workload
+(e.g., sitting, driving, standing, light walking)
+- WBGT < 31°C: Normal operations. Hydrate regularly.
+- WBGT 31°C to 32°C: 45 minutes work / 15 minutes rest.
+- WBGT > 32°C: 30 minutes work / 30 minutes rest.
+
+## Moderate Workload
+(e.g., normal walking, carrying light loads, painting, normal construction)
+- WBGT < 28°C: Normal operations.
+- WBGT 28°C to 29°C: 45 minutes work / 15 minutes rest.
+- WBGT 29°C to 30°C: 30 minutes work / 30 minutes rest.
+- WBGT 30°C to 31.5°C: 15 minutes work / 45 minutes rest.
+- WBGT > 31.5°C: Halt outdoor moderate labor.
+
+## Heavy Workload
+(e.g., digging, shoveling, roofing, asphalt laying, sledgehammer use)
+- WBGT < 26°C: Normal operations.
+- WBGT 26°C to 28°C: 45 minutes work / 15 minutes rest.
+- WBGT 28°C to 30°C: 30 minutes work / 30 minutes rest.
+- WBGT 30°C to 31.5°C: 15 minutes work / 45 minutes rest.
+- WBGT > 31.5°C: Halt all heavy outdoor labor immediately.
+
+## Hydration & First Aid
+Regardless of workload, when WBGT exceeds 26°C, workers must drink 1 cup (8 oz) of water every 15-20 minutes. If a worker exhibits dizziness, nausea, or confusion, move them to shade immediately and apply cold compresses.

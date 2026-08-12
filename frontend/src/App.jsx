@@ -860,52 +860,45 @@ function App() {
               {workRestGuidance && (
                 <div className="message assistant">
                   <div className="message-content" style={{ background: 'transparent', padding: 0, border: 'none' }}>
-                    <div className="work-rest-card">
-                      <div className="wrc-header">
-                        <div className="wrc-title">
-                          <h3>Feels like {currentWeather ? currentWeather.feels_like_celsius : workRestGuidance.feels_like}°C</h3>
-                          <span className={`wrc-badge badge-${(currentWeather?.heat_risk_level || workRestGuidance.risk_level).toLowerCase()}`}>{currentWeather?.heat_risk_level || workRestGuidance.risk_level}</span>
+                    <div className="work-rest-card" style={{ background: 'var(--panel-bg)', padding: '20px', borderRadius: '12px', border: '1px solid var(--border-color)', marginTop: '10px' }}>
+                      <div className="wrc-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '20px' }}>
+                        <div>
+                          <h3 style={{ margin: '0 0 5px 0', fontSize: '18px' }}>{workRestGuidance.workload} Workload Safety</h3>
+                          <p style={{ margin: 0, fontSize: '14px', color: 'var(--text-secondary)' }}>Calculated via Wet Bulb Globe Temp (WBGT)</p>
                         </div>
-                        <p>Actual {currentWeather ? currentWeather.temperature_celsius : workRestGuidance.actual}°C · {workRestGuidance.humidity_level} humidity</p>
+                        <div style={{ textAlign: 'right' }}>
+                          <span className={`wrc-badge badge-${workRestGuidance.halt_operations ? 'extreme' : 'caution'}`} style={{ padding: '4px 10px', borderRadius: '20px', fontSize: '12px', fontWeight: 'bold' }}>
+                            {workRestGuidance.halt_operations ? 'HALT OPERATIONS' : 'SCHEDULE REQUIRED'}
+                          </span>
+                          <p style={{ margin: '5px 0 0 0', fontSize: '16px', fontWeight: 'bold' }}>{workRestGuidance.wbgt_celsius.toFixed(1)}°C WBGT</p>
+                        </div>
                       </div>
-                      
-                      <div className="wrc-body">
-                        <h4>Work/rest cycle at this heat level</h4>
-                        <table className="wrc-table">
-                          <thead>
-                            <tr>
-                              <th>Workload</th>
-                              <th>Work</th>
-                              <th>Rest</th>
-                            </tr>
-                          </thead>
-                          <tbody>
-                            <tr>
-                              <td style={{ fontWeight: '600' }}>Light</td>
-                              <td>{workRestGuidance.schedule.light.work}</td>
-                              <td>{workRestGuidance.schedule.light.rest}</td>
-                            </tr>
-                            <tr className={workRestGuidance.risk_level === 'Extreme' || workRestGuidance.risk_level === 'High' ? 'row-warning' : ''}>
-                              <td style={{ fontWeight: '600' }}>Moderate</td>
-                              <td>{workRestGuidance.schedule.moderate.work}</td>
-                              <td>{workRestGuidance.schedule.moderate.rest}</td>
-                            </tr>
-                            <tr className={workRestGuidance.risk_level === 'Extreme' ? 'row-danger' : (workRestGuidance.risk_level === 'High' ? 'row-warning' : '')}>
-                              <td style={{ fontWeight: '600' }}>Heavy</td>
-                              <td>{workRestGuidance.schedule.heavy.work}</td>
-                              <td>{workRestGuidance.schedule.heavy.rest}</td>
-                            </tr>
-                          </tbody>
-                        </table>
-                        
-                        <div className="wrc-info">
-                          <span style={{ fontSize: '1.2rem' }}>ⓘ</span>
-                          <p>Based on NIOSH heat-stress guidance for {workRestGuidance.humidity_level} humidity. Heavy exertion outdoors is not recommended at this heat level.</p>
+
+                      <div className="wrc-progress-container" style={{ display: 'flex', height: '30px', borderRadius: '8px', overflow: 'hidden', marginBottom: '15px' }}>
+                        {workRestGuidance.halt_operations ? (
+                           <div style={{ flex: 1, background: '#ff4c4c', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontWeight: 'bold' }}>STOP WORK IMMEDIATELY</div>
+                        ) : (
+                           <>
+                             <div style={{ width: `${(workRestGuidance.work_minutes / 60) * 100}%`, background: '#2ecc71', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#000', fontWeight: 'bold', fontSize: '12px' }}>
+                               WORK {workRestGuidance.work_minutes}M
+                             </div>
+                             {workRestGuidance.rest_minutes > 0 && (
+                               <div style={{ width: `${(workRestGuidance.rest_minutes / 60) * 100}%`, background: '#ff4c4c', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontWeight: 'bold', fontSize: '12px' }}>
+                                 REST {workRestGuidance.rest_minutes}M
+                               </div>
+                             )}
+                           </>
+                        )}
+                      </div>
+
+                      <div className="wrc-footer" style={{ borderTop: '1px solid var(--border-color)', paddingTop: '15px', marginTop: '5px', fontSize: '14px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                          <span style={{ fontSize: '16px' }}>💧</span>
+                          <strong>Hydration:</strong> {workRestGuidance.hydration_rule}
                         </div>
-                        
-                        <button className="wrc-action-btn">
-                          Alert supervisor to pause work
-                        </button>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: 'var(--text-secondary)', fontSize: '12px' }}>
+                          <span>ℹ️</span> Based on official NIOSH thresholds for unacclimatized workers.
+                        </div>
                       </div>
                     </div>
                   </div>
