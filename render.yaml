@@ -1,0 +1,12 @@
+services:
+  - type: web
+    name: heatshield-backend
+    runtime: docker
+    dockerfilePath: Dockerfile.backend
+    envVars:
+      - key: GEMINI_API_KEY
+        sync: false
+    disk:
+      name: heatshield-data
+      mountPath: /app/data
+      sizeGB: 1

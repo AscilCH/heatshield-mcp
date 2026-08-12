@@ -7,6 +7,10 @@ import 'leaflet/dist/leaflet.css'
 import L from 'leaflet'
 import './App.css'
 
+// API URL: uses environment variable in production, falls back to localhost for dev
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
+const WS_URL = API_URL.replace(/^http/, 'ws');
+
 // Fix missing marker icons in Leaflet with Vite
 import icon from 'leaflet/dist/images/marker-icon.png'
 import iconShadow from 'leaflet/dist/images/marker-shadow.png'
@@ -314,7 +318,7 @@ function App() {
 
   // Establish WebSocket connection for real-time push notifications
   useEffect(() => {
-    const ws = new WebSocket('ws://localhost:8000/ws/alerts');
+    const ws = new WebSocket(`${WS_URL}/ws/alerts`);
     
     ws.onopen = () => console.log('Connected to HeatShield Emergency WebSocket');
     
@@ -339,7 +343,7 @@ function App() {
   // Request geolocation on mount, with a fallback
   useEffect(() => {
     const fetchDefaultMap = (lat, lng) => {
-      axios.post('http://localhost:8000/api/default-map', { lat, lng })
+      axios.post(`${API_URL}/api/default-map`, { lat, lng })
         .then(res => {
           if (res.data.current_weather) setCurrentWeather(res.data.current_weather);
           if (res.data.uhi_geojson) setUhiGeojson(res.data.uhi_geojson);
@@ -388,7 +392,7 @@ function App() {
     let interval;
     if (currentView === 'check-in') {
       const fetchContacts = () => {
-        axios.get('http://localhost:8000/api/contacts')
+        axios.get(`${API_URL}/api/contacts`)
           .then(res => setContacts(res.data))
           .catch(err => console.error(err));
       };
@@ -436,7 +440,7 @@ function App() {
       // We skip the first message (the greeting)
       const history = messages.slice(1).map(m => ({ role: m.role, content: m.content }))
 
-      const response = await fetch('http://localhost:8000/api/chat', {
+      const response = await fetch(`${API_URL}/api/chat`, {
         method: 'POST',
         headers: { 
           'Content-Type': 'application/json',
