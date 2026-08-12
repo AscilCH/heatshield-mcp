@@ -368,7 +368,7 @@ function App() {
         },
         (error) => {
           console.error("Error getting location: ", error);
-          const fallbackLoc = { lat: 35.5024, lng: 11.0622 };
+          const fallbackLoc = { lat: 34.7406, lng: 10.7603 };
           setUserLocation(fallbackLoc);
           setMarkers(prev => [...prev, { ...fallbackLoc, label: "You are here", type: "user_location" }]);
           fetchDefaultMap(fallbackLoc.lat, fallbackLoc.lng);
@@ -376,7 +376,7 @@ function App() {
         { enableHighAccuracy: true, timeout: 5000 }
       );
     } else {
-      const fallbackLoc = { lat: 35.5024, lng: 11.0622 };
+      const fallbackLoc = { lat: 34.7406, lng: 10.7603 };
       setUserLocation(fallbackLoc);
       setMarkers(prev => [...prev, { ...fallbackLoc, label: "You are here", type: "user_location" }]);
       fetchDefaultMap(fallbackLoc.lat, fallbackLoc.lng);
@@ -450,8 +450,8 @@ function App() {
           message: userMessage,
           history: history,
           // If browser GPS is still pending, fallback to Sfax so the AI always has a location context
-          latitude: userLocation?.lat ?? 35.5024,
-          longitude: userLocation?.lng ?? 11.0622
+          latitude: userLocation?.lat ?? 34.7406,
+          longitude: userLocation?.lng ?? 10.7603
         })
       })
       
