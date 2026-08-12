@@ -63,7 +63,7 @@ async def get_air_quality_forecast(latitude: float, longitude: float, days: int 
     return await air_quality.get_air_quality_forecast(latitude, longitude, days)
 
 @mcp.tool()
-async def find_cooling_spots(latitude: float, longitude: float, radius: int = 5000) -> str:
+async def find_cooling_spots(latitude: float, longitude: float, radius: int = 800) -> str:
     """
     Use spatial analytics to find nearby cooling shelters (parks, pools, libraries, fountains).
     Requires latitude, longitude, and an optional radius in meters.
@@ -111,7 +111,7 @@ async def query_emergency_protocols(query: str) -> str:
     return await rag.query_protocols(query)
 
 @mcp.tool()
-async def get_urban_heat_island_heatmap(latitude: float, longitude: float, radius: int = 5000) -> str:
+async def get_urban_heat_island_heatmap(latitude: float, longitude: float, radius: int = 800) -> str:
     """
     Generates a live spatial GeoJSON heatmap of the Urban Heat Island (UHI) effect.
     Use this when the user wants to visualize heat traps (concrete) versus cooling zones (parks).
