@@ -5,7 +5,7 @@ from heatshield.spatial_cache import get_cached_heatmap, set_cached_heatmap
 
 OVERPASS_URL = "https://overpass-api.de/api/interpreter"
 
-async def generate_uhi_heatmap(latitude: float, longitude: float, radius: int = 800) -> str:
+async def generate_uhi_heatmap(latitude: float, longitude: float, radius: int = 400) -> str:
     """
     Queries OpenStreetMap to fetch polygon geometries of heat-trapping surfaces (asphalt, commercial)
     and cooling zones (parks, forests, water) to generate a live Urban Heat Island GeoJSON heatmap.
@@ -28,9 +28,7 @@ async def generate_uhi_heatmap(latitude: float, longitude: float, radius: int = 
     (
       // Heat Traps (Red)
       way["building"](around:{radius},{latitude},{longitude});
-      relation["building"](around:{radius},{latitude},{longitude});
       way["amenity"="parking"](around:{radius},{latitude},{longitude});
-      relation["amenity"="parking"](around:{radius},{latitude},{longitude});
       
       // Cooling Zones (Green)
       way["leisure"="park"](around:{radius},{latitude},{longitude});

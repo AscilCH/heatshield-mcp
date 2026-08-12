@@ -113,7 +113,7 @@ async def query_emergency_protocols(query: str) -> str:
     return await rag.query_protocols(query)
 
 @mcp.tool()
-async def get_urban_heat_island_heatmap(latitude: float, longitude: float, radius: int = 800) -> str:
+async def get_urban_heat_island_heatmap(latitude: float, longitude: float, radius: int = 400) -> str:
     """
     Generates a live spatial GeoJSON heatmap of the Urban Heat Island (UHI) effect.
     Use this when the user wants to visualize heat traps (concrete) versus cooling zones (parks).

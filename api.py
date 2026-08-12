@@ -192,8 +192,9 @@ async def chat_endpoint(req: ChatRequest):
     if req.latitude is not None and req.longitude is not None:
         system_prompt += (
             f" The user's physical device is located at Latitude {req.latitude}, Longitude {req.longitude}. "
-            f"If they ask for information 'nearby' or 'here', use the last city/location discussed in the conversation history. "
-            f"If no other location has been discussed yet, fallback to using their physical device coordinates."
+            f"If they ask for information 'nearby' or 'here', DO NOT call the geocode_location tool with the word 'nearby'. "
+            f"Instead, use the coordinates of the last city discussed in the conversation history. "
+            f"If no other location has been discussed yet, you MUST directly use their physical device coordinates ({req.latitude}, {req.longitude}) for all tool calls."
         )
 
     messages = [{"role": "system", "content": system_prompt}]
@@ -397,8 +398,8 @@ async def default_map_endpoint(req: dict):
     except:
         pass
         
-    # 2. Fetch UHI Map (Reduced to 800m to prevent Overpass timeouts in dense cities)
-    uhi_res = await session.call_tool('get_urban_heat_island_heatmap', {'latitude': lat, 'longitude': lng, 'radius': 800})
+    # 2. Fetch UHI Map (Reduced to 400m to prevent Overpass timeouts in ultra-dense cities like Paris)
+    uhi_res = await session.call_tool('get_urban_heat_island_heatmap', {'latitude': lat, 'longitude': lng, 'radius': 400})
     uhi_geojson = None
     try:
         uhi_data = json.loads(''.join([c.text for c in uhi_res.content if c.type == 'text']))
