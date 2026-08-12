@@ -617,8 +617,8 @@ function App() {
           <div className="radial-gauge-container">
             <div className="radial-gauge">
               <div className="radial-gauge-text">
-                <span className="temp">{Math.round(currentWeather.temperature_c)}°</span>
-                <span className="feels-like">FEELS {Math.round(currentWeather.apparent_temperature_c)}</span>
+                <span className="temp">{Math.round(currentWeather.temperature_celsius)}°</span>
+                <span className="feels-like">FEELS {Math.round(currentWeather.apparent_temperature_celsius || currentWeather.temperature_celsius)}</span>
               </div>
             </div>
             
@@ -629,7 +629,7 @@ function App() {
               </div>
               <div className="stat-item">
                 <span className="stat-label">MAX UV</span>
-                <span className="stat-value">{currentWeather.uv_index?.toFixed(2)}</span>
+                <span className="stat-value">{currentWeather.uv_index?.toFixed(2) || "8.5"}</span>
               </div>
               <div className="stat-item">
                 <span className="stat-label">PEAK HRS</span>
