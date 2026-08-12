@@ -24,27 +24,43 @@ let DefaultIcon = L.icon({
 L.Marker.prototype.options.icon = DefaultIcon
 
 // Helper component to smoothly move the map when markers change
-function MapController({ markers }) {
+function MapController({ markers, routeGeojson, uhiGeojson }) {
   const map = useMap()
   
   useEffect(() => {
+    let bounds = new L.LatLngBounds();
+    let hasBounds = false;
+
+    // Add marker bounds
     if (markers.length > 0) {
-      const searchLocation = markers.find(m => m.type === 'geocode_location')
-      
-      if (searchLocation) {
-        map.flyTo([searchLocation.lat, searchLocation.lng], 13, { duration: 2 })
-      } else {
-        const userLoc = markers.find(m => m.type === 'user_location')
-        if (userLoc) {
-            map.flyTo([userLoc.lat, userLoc.lng], 13, { duration: 2 })
-        } else {
-            const last = markers[markers.length - 1]
-            map.flyTo([last.lat, last.lng], 13, { duration: 2 })
+      markers.forEach(m => {
+        if (m.lat && m.lng) {
+          bounds.extend([m.lat, m.lng]);
+          hasBounds = true;
         }
-      }
+      });
     }
-  }, [markers, map])
-  
+
+    // Add route bounds if present
+    if (routeGeojson && routeGeojson.features) {
+      routeGeojson.features.forEach(f => {
+        if (f.geometry && f.geometry.coordinates) {
+          const coords = f.geometry.coordinates;
+          coords.forEach(coord => {
+            if (Array.isArray(coord) && coord.length === 2) {
+              bounds.extend([coord[1], coord[0]]); // GeoJSON is [lon, lat], Leaflet is [lat, lon]
+              hasBounds = true;
+            }
+          });
+        }
+      });
+    }
+
+    if (hasBounds) {
+      map.fitBounds(bounds, { padding: [50, 50], maxZoom: 14, duration: 2 });
+    }
+  }, [markers, routeGeojson, uhiGeojson, map])
+
   return null
 }
 
@@ -498,7 +514,9 @@ function App() {
                 try {
                     const data = JSON.parse(part);
                     
-                    if (data.type === 'tool_call') {
+                    if (data.type === 'trace') {
+                        console.log(`%c${data.message}`, 'color: #3b82f6; font-weight: bold;');
+                    } else if (data.type === 'tool_call') {
                         // Map the tool name to a user-friendly action string
                         const actionMap = {
                             "geocode_location": "🔍 Geocoding location...",
@@ -556,38 +574,100 @@ function App() {
     }
   }
 
+  // Function to create color-coded map pins
+  const createCustomIcon = (color) => {
+    return new L.DivIcon({
+      className: 'custom-div-icon',
+      html: `<div style="background-color:${color};width:16px;height:16px;border-radius:50%;border:2px solid #1A1512;box-shadow:0 0 10px ${color}"></div>`,
+      iconSize: [20, 20],
+      iconAnchor: [10, 10]
+    });
+  };
+
+  const getMarkerColor = (marker) => {
+    if (marker.type === 'cooling_spot') return '#3ECF8E'; // Teal
+    if (marker.tags?.risk === 'EXTREME') return '#E63946'; // Red
+    if (marker.tags?.risk === 'CAUTION') return '#F5A623'; // Amber
+    return '#FF5A3C'; // Default Ember
+  };
+
   // Parses markdown headers and wraps sections into "Cards"
   const formatContent = (text) => {
     if (!text) return null;
     
-    // Split by Markdown headers (h2 or h3)
-    const sections = text.split(/(?=###? )/);
+    // Instead of rendering a chat bubble for weather, we render the Stat Card if weather exists
+    if (currentWeather && text.includes("EXTREME") || text.includes("Temperature")) {
+      const riskClass = currentWeather.heat_risk_level === 'EXTREME' ? 'risk-extreme' : 
+                       currentWeather.heat_risk_level === 'CAUTION' ? 'risk-caution' : 'risk-safe';
+                       
+      return (
+        <div className="stat-card">
+          <div className="stat-header">
+            <div className="stat-city-info">
+              <span>TODAY'S READING</span>
+              <h2>{currentWeather.location || "Sfax"}</h2>
+              <div style={{ display: 'flex', gap: '8px' }}>
+                <div className={`risk-badge ${riskClass}`}>
+                  • {currentWeather.heat_risk_level || "UNKNOWN"} RISK
+                </div>
+              </div>
+            </div>
+          </div>
+          
+          <div className="radial-gauge-container">
+            <div className="radial-gauge">
+              <div className="radial-gauge-text">
+                <span className="temp">{Math.round(currentWeather.temperature_c)}°</span>
+                <span className="feels-like">FEELS {Math.round(currentWeather.apparent_temperature_c)}</span>
+              </div>
+            </div>
+            
+            <div className="stat-grid">
+              <div className="stat-item">
+                <span className="stat-label">HUMIDITY</span>
+                <span className="stat-value">{Math.round(currentWeather.humidity_percent)}%</span>
+              </div>
+              <div className="stat-item">
+                <span className="stat-label">MAX UV</span>
+                <span className="stat-value">{currentWeather.uv_index?.toFixed(2)}</span>
+              </div>
+              <div className="stat-item">
+                <span className="stat-label">PEAK HRS</span>
+                <span className="stat-value">12-4PM</span>
+              </div>
+            </div>
+          </div>
+          
+          {safetyAdvice && (
+            <div className="recommendations-card">
+              <h3><MapPin size={18} /> Safety recommendations</h3>
+              <ul>
+                <li>Avoid outdoor physical exertion during peak afternoon hours.</li>
+                <li>Stay hydrated by drinking water regularly, even without thirst.</li>
+                <li>Seek shaded or air-conditioned spaces — several parks are nearby.</li>
+                <li>Wear lightweight, loose-fitting, light-colored clothing.</li>
+              </ul>
+            </div>
+          )}
+        </div>
+      );
+    }
     
+    // Fallback for regular chat messages (like symptom triage output)
+    const sections = text.split(/(?=###? )/);
     return sections.map((section, idx) => {
-      // Clean up stray hashes or empty sections
       if (section.trim() === '#' || section.trim() === '##' || section.trim() === '') return null;
       
-      let isWarning = section.includes('Alert') || section.includes('Warning') || section.includes('EXTREME');
-      let isWeather = section.includes('Weather') || section.includes('Temperature');
-      let isSpots = section.includes('Cooling') || section.includes('Spots');
-      
-      let cardClass = "chat-card";
-      if (isWarning) cardClass += " warning-card";
-      if (isWeather) cardClass += " weather-card";
-      if (isSpots) cardClass += " spots-card";
-
-      // Enhanced markdown parsing for standard prose
       const processMarkdown = (str) => {
           const rawHtml = str
             .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
-            .replace(/(?<!\*)\*(?!\*)(.*?)\*/g, '<em>$1</em>') // Italic (single asterisk, but not double)
-            .replace(/\n\*/g, '<br/> ') // Fix bullet points starting with *
-            .replace(/\n-/g, '<br/> ')  // Fix bullet points starting with -
+            .replace(/(?<!\*)\*(?!\*)(.*?)\*/g, '<em>$1</em>')
+            .replace(/\n\*/g, '<br/> ')
+            .replace(/\n-/g, '<br/> ')
             .replace(/\n/g, '<br/>');
           return DOMPurify.sanitize(rawHtml);
       };
       
-      // If it doesn't start with a header, it's just normal text
       if (!section.startsWith('#')) {
          return (
            <div key={idx} className="chat-normal-text" dangerouslySetInnerHTML={{ 
@@ -596,13 +676,12 @@ function App() {
          );
       }
       
-      // Clean up the text for the card
       const lines = section.split('\n');
       const header = lines[0].replace(/###? /, '');
       const body = lines.slice(1).join('\n');
       
       return (
-        <div key={idx} className={cardClass}>
+        <div key={idx} className="chat-card">
           <h4>{header}</h4>
           <div className="card-body" dangerouslySetInnerHTML={{ __html: processMarkdown(body) }} />
         </div>
@@ -620,9 +699,9 @@ function App() {
             url="https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png"
             attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
           />
-          <MapController markers={markers} />
+          <MapController markers={markers} routeGeojson={routeGeojson} uhiGeojson={uhiGeojson} />
           {markers.map((marker, idx) => (
-            <Marker key={idx} position={[marker.lat, marker.lng]}>
+            <Marker key={idx} position={[marker.lat, marker.lng]} icon={createCustomIcon(getMarkerColor(marker))}>
               <Popup>
                 {marker.type === 'cooling_spot' ? (
                   <div style={{ padding: '2px', minWidth: '150px' }}>

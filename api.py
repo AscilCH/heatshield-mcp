@@ -169,7 +169,7 @@ async def sms_reply(req: dict):
             return {"status": "success", "message": "Contact updated to Alert"}
     return {"status": "error", "message": "Contact not found"}
 
-chat_rate_limiter = RateLimiter(requests_per_minute=5)
+chat_rate_limiter = RateLimiter(requests_per_minute=30)
 
 @app.post("/api/chat", dependencies=[Depends(verify_api_key), Depends(chat_rate_limiter)])
 async def chat_endpoint(req: ChatRequest):
@@ -186,8 +186,11 @@ async def chat_endpoint(req: ChatRequest):
         "OCCUPATIONAL SAFETY: When asked about safe work conditions, CDC/NIOSH work/rest cycles, or working outside, you MUST call the `get_occupational_heat_guidance` tool. "
         "CRITICAL RULE: If the user asks for a safety schedule but does not specify their physical activity or workload (e.g. they just say 'I need a schedule'), YOU MUST ask them what kind of physical labor they are doing before calling the tool! DO NOT guess their workload. "
         "Do not generate a free-text markdown table yourself; the UI will render it natively based on your tool call. NEVER write any prose summarizing the results of this tool, the UI will display everything. "
-        "MAP UPDATES: When the user asks about a new city, place, or location, you MUST call both `get_urban_heat_island_heatmap` and `find_cooling_spots` for that new location to ensure the map UI updates properly! "
-        "MEDICAL TRIAGE & RAG: If the user lists symptoms or asks for medical advice, you MUST call `query_emergency_protocols` to retrieve official WHO/CDC first-aid protocols. NEVER hallucinate medical advice. "
+        "MAP UPDATES: When the user asks about a NEW city, place, or location (e.g. 'what about Dubai?', 'show me Tunis'), you MUST call both `get_urban_heat_island_heatmap` and `find_cooling_spots` for that new location to ensure the map UI updates properly! "
+        "DO NOT call heatmap or cooling spot tools when the user is asking about symptoms, feeling unwell, or requesting medical triage — those are NOT location requests. "
+        "MEDICAL TRIAGE & RAG: If the user lists symptoms or asks for medical advice, first try calling `query_emergency_protocols` to retrieve official WHO/CDC first-aid protocols. "
+        "If the RAG tool returns an error or 'No relevant protocols found', DO NOT go silent — instead, provide general first-aid triage advice from your training data (e.g. heat exhaustion vs heat stroke symptoms, when to call emergency services). Always end with a disclaimer to seek professional medical help. "
+        "Do NOT proactively call find_cooling_spots or heatmap tools during medical triage unless the user explicitly asks 'where can I cool down'. "
         "EMERGENCIES: If the user explicitly states they are calling emergency services or experiencing a critical emergency, you MUST call the `broadcast_emergency_alert` tool to trigger the global siren on all connected devices."
     )
     
@@ -208,6 +211,8 @@ async def chat_endpoint(req: ChatRequest):
     messages = [{"role": "system", "content": system_prompt}]
     messages.extend(req.history)
     messages.append({"role": "user", "content": req.message})
+    
+    print(f"\n{'='*50}\n[UC TRACE] 👤 User Message: '{req.message}'\n[UC TRACE] 📍 Device Coordinates: Lat {req.latitude}, Lon {req.longitude}\n{'='*50}")
     
     async def event_generator():
         # Track map coordinates for the frontend
@@ -239,6 +244,10 @@ async def chat_endpoint(req: ChatRequest):
                 tool_name = tool_call.function.name
                 tool_args = json.loads(tool_call.function.arguments)
                 
+                trace_msg = f"[UC TRACE] 🤖 LLM decided to call tool: {tool_name} with args: {json.dumps(tool_args)}"
+                print(trace_msg)
+                yield json.dumps({"type": "trace", "message": trace_msg}) + "\n"
+                
                 # YIELD TOOL CALL EVENT TO FRONTEND
                 yield json.dumps({"type": "tool_call", "name": tool_name}) + "\n"
                 
@@ -254,8 +263,23 @@ async def chat_endpoint(req: ChatRequest):
                 try:
                     mcp_result = await session.call_tool(tool_name, tool_args)
                     tool_output = "\n".join([c.text for c in mcp_result.content if c.type == "text"])
+                    
+                    success_msg = f"[UC TRACE] 🟢 Tool {tool_name} returned successfully (Length: {len(tool_output)} chars)"
+                    print(success_msg)
+                    yield json.dumps({"type": "trace", "message": success_msg}) + "\n"
+                    
+                    if len(tool_output) < 500:
+                        out_msg = f"[UC TRACE] 📤 Tool Output: {tool_output}"
+                    else:
+                        out_msg = f"[UC TRACE] 📤 Tool Output: {tool_output[:500]}... [TRUNCATED]"
+                    print(out_msg)
+                    yield json.dumps({"type": "trace", "message": out_msg}) + "\n"
+                    
                 except Exception as e:
                     tool_output = f"Error executing tool {tool_name}: {str(e)}"
+                    err_msg = f"[UC TRACE] 🔴 Tool {tool_name} failed: {tool_output}"
+                    print(err_msg)
+                    yield json.dumps({"type": "trace", "message": err_msg}) + "\n"
                 
                 # If we found cooling spots, extract their coordinates too!
                 if tool_name == "find_cooling_spots" and not "error" in tool_output.lower():

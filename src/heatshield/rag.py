@@ -109,7 +109,8 @@ async def query_protocols(query: str, n_results: int = 3) -> str:
     # Memory protection for Render free tier
     if os.environ.get('RENDER'):
         return json.dumps({
-            "error": "Semantic RAG search is disabled on the free Render tier due to 512MB RAM limits (PyTorch OOM). Proceed using general LLM knowledge."
+            "error": "Semantic RAG search is disabled on the free Render tier due to 512MB RAM limits (PyTorch OOM). Proceed using general LLM knowledge.",
+            "fallback": True
         })
         
     try:
@@ -123,7 +124,10 @@ async def query_protocols(query: str, n_results: int = 3) -> str:
         )
         
         if not results['documents'] or len(results['documents']) == 0 or len(results['documents'][0]) == 0:
-            return json.dumps({"message": "No relevant protocols found in the database. Consider using ingest_emergency_document_url to add some."})
+            return json.dumps({
+                "message": "No relevant protocols found in the local database. Please provide general heat-related first-aid triage advice based on your medical training data. Always recommend the user call emergency services if symptoms are severe.",
+                "fallback": True
+            })
             
         retrieved_chunks = results['documents'][0]
         sources = [m.get("source", "Unknown") for m in results['metadatas'][0]]
@@ -138,4 +142,7 @@ async def query_protocols(query: str, n_results: int = 3) -> str:
         return json.dumps(response)
         
     except Exception as e:
-        return json.dumps({"error": f"Failed to query protocols: {str(e)}"})
+        return json.dumps({
+            "error": f"RAG system unavailable: {str(e)}. Please provide general heat-related first-aid triage advice based on your medical training data. Always recommend the user call emergency services if symptoms are severe.",
+            "fallback": True
+        })
