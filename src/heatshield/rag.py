@@ -1,22 +1,33 @@
-import chromadb
-from sentence_transformers import SentenceTransformer
 import httpx
 from pypdf import PdfReader
 import io
 import os
 import json
+import logging
 
-# Initialize ChromaDB in local persistent mode
+logger = logging.getLogger(__name__)
+
+# Initialize ChromaDB in local persistent mode (Lazy loaded)
 CHROMA_PERSIST_DIR = os.path.join(os.path.dirname(__file__), ".chroma_db")
-chroma_client = chromadb.PersistentClient(path=CHROMA_PERSIST_DIR)
-collection = chroma_client.get_or_create_collection(name="emergency_protocols")
+_chroma_client = None
+_collection = None
+
+def get_chroma_collection():
+    global _chroma_client, _collection
+    if _collection is None:
+        import chromadb
+        _chroma_client = chromadb.PersistentClient(path=CHROMA_PERSIST_DIR)
+        _collection = _chroma_client.get_or_create_collection(name="emergency_protocols")
+    return _collection
 
 # Initialize Embedding Model (Lazy load to save memory on import)
+_embedding_model = None
 _embedding_model = None
 
 def get_embedding_model():
     global _embedding_model
     if _embedding_model is None:
+        from sentence_transformers import SentenceTransformer
         print("Loading SentenceTransformer model 'all-MiniLM-L6-v2'...")
         _embedding_model = SentenceTransformer('all-MiniLM-L6-v2')
     return _embedding_model
@@ -49,9 +60,16 @@ async def download_and_extract_pdf(url: str) -> str:
     return text
 
 async def ingest_document(url: str) -> str:
-    """Orchestrates downloading, extracting, chunking, embedding, and storing a PDF."""
+    """Downloads a PDF or text document, chunks it, and ingests into ChromaDB."""
+    # Memory protection for Render free tier
+    if os.environ.get('RENDER'):
+        return json.dumps({
+            "error": "Document ingestion is disabled on the free Render tier due to RAM limits."
+        })
+
     try:
-        print(f"Downloading PDF from {url}...")
+        print(f"Downloading document from {url}...")
+
         raw_text = await download_and_extract_pdf(url)
         if not raw_text.strip():
             return json.dumps({"error": "Failed to extract text from PDF."})
@@ -68,12 +86,13 @@ async def ingest_document(url: str) -> str:
         ids = [f"{doc_id}_{i}" for i in range(len(chunks))]
         metadatas = [{"source": url, "chunk_index": i} for i in range(len(chunks))]
         
-        print("Saving to ChromaDB...")
+        # Ingest into ChromaDB
+        collection = get_chroma_collection()
         collection.add(
+            ids=ids,
             embeddings=embeddings,
             documents=chunks,
-            metadatas=metadatas,
-            ids=ids
+            metadatas=metadatas
         )
         
         return json.dumps({
@@ -86,9 +105,16 @@ async def ingest_document(url: str) -> str:
         return json.dumps({"error": f"Failed to ingest document: {str(e)}"})
 
 async def query_protocols(query: str, n_results: int = 3) -> str:
-    """Embeds the query and searches ChromaDB for semantically similar chunks."""
+    """Queries the local ChromaDB for relevant protocols using semantic search."""
+    # Memory protection for Render free tier
+    if os.environ.get('RENDER'):
+        return json.dumps({
+            "error": "Semantic RAG search is disabled on the free Render tier due to 512MB RAM limits (PyTorch OOM). Proceed using general LLM knowledge."
+        })
+        
     try:
         model = get_embedding_model()
+        collection = get_chroma_collection()
         query_embedding = model.encode([query]).tolist()
         
         results = collection.query(
