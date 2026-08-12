@@ -32,6 +32,8 @@ async def geocode_location(query: str) -> str:
     """
     Get the latitude and longitude for a city, address, or location.
     Always use this tool first if you only have a city name and need coordinates for the other tools.
+    DO NOT use this tool for relative terms like "nearby", "here", "my location", or "my position". 
+    If the user asks for a relative location, use the physical coordinates provided in your system prompt instead.
     
     Args:
         query: The name of the city or location (e.g., "Karlsruhe, Germany")
