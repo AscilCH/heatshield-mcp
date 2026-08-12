@@ -358,6 +358,25 @@ function App() {
         .catch(err => console.error("Error fetching default map:", err));
     };
 
+    const handleGeolocationFallback = async () => {
+      try {
+        const response = await fetch('https://ipapi.co/json/');
+        const data = await response.json();
+        if (data.latitude && data.longitude) {
+          const loc = { lat: data.latitude, lng: data.longitude };
+          setUserLocation(loc);
+          setMarkers(prev => [...prev, { ...loc, label: "You are here (IP approx)", type: "user_location" }]);
+          fetchDefaultMap(loc.lat, loc.lng);
+        } else {
+          // Ultimate safety fallback if everything fails, do not hardcode specific cities
+          fetchDefaultMap(null, null); 
+        }
+      } catch (err) {
+        console.error("IP Geolocation fallback failed:", err);
+        fetchDefaultMap(null, null);
+      }
+    };
+
     if ("geolocation" in navigator) {
       navigator.geolocation.getCurrentPosition(
         (position) => {
@@ -367,19 +386,13 @@ function App() {
           fetchDefaultMap(loc.lat, loc.lng);
         },
         (error) => {
-          console.error("Error getting location: ", error);
-          const fallbackLoc = { lat: 34.7406, lng: 10.7603 };
-          setUserLocation(fallbackLoc);
-          setMarkers(prev => [...prev, { ...fallbackLoc, label: "You are here", type: "user_location" }]);
-          fetchDefaultMap(fallbackLoc.lat, fallbackLoc.lng);
+          console.error("Error getting location from GPS, falling back to IP: ", error);
+          handleGeolocationFallback();
         },
         { enableHighAccuracy: true, timeout: 5000 }
       );
     } else {
-      const fallbackLoc = { lat: 34.7406, lng: 10.7603 };
-      setUserLocation(fallbackLoc);
-      setMarkers(prev => [...prev, { ...fallbackLoc, label: "You are here", type: "user_location" }]);
-      fetchDefaultMap(fallbackLoc.lat, fallbackLoc.lng);
+      handleGeolocationFallback();
     }
   }, [])
 
@@ -449,9 +462,8 @@ function App() {
         body: JSON.stringify({
           message: userMessage,
           history: history,
-          // If browser GPS is still pending, fallback to Sfax so the AI always has a location context
-          latitude: userLocation?.lat ?? 34.7406,
-          longitude: userLocation?.lng ?? 10.7603
+          latitude: userLocation?.lat,
+          longitude: userLocation?.lng
         })
       })
       
@@ -601,7 +613,7 @@ function App() {
       <AlertBanner alert={wsAlert} onClose={() => setWsAlert(null)} />
       {/* Background Map */}
       <div className="map-container">
-        <MapContainer center={[49.0068, 8.4034]} zoom={4} style={{ height: '100%', width: '100%' }} zoomControl={false}>
+        <MapContainer center={[0, 0]} zoom={2} style={{ height: '100%', width: '100%' }} zoomControl={false}>
           <TileLayer
             url="https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png"
             attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'

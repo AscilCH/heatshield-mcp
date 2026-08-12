@@ -386,8 +386,17 @@ async def default_map_endpoint(req: dict):
     if not session:
         raise HTTPException(status_code=500, detail='MCP Server not connected')
     
-    lat = req.get('lat', 49.0068)
-    lng = req.get('lng', 8.4034)
+    lat = req.get('lat')
+    lng = req.get('lng')
+    
+    if lat is None or lng is None:
+        # If there's absolutely no location (GPS failed, IP failed), return empty map state
+        return {
+            "current_weather": None,
+            "uhi_geojson": None,
+            "isochrone_geojson": None,
+            "markers": []
+        }
     
     # 1. Fetch current weather for SSOT
     weather_res = await session.call_tool('get_weather_and_heat_risk', {'latitude': lat, 'longitude': lng})
