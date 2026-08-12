@@ -358,11 +358,29 @@ function App() {
         .catch(err => console.error("Error fetching default map:", err));
     };
 
-    // Force location to Sfax for the demo to prevent browser GPS/VPN from hijacking to Phoenix
-    const fallbackLoc = { lat: 35.5024, lng: 11.0622 };
-    setUserLocation(fallbackLoc);
-    setMarkers(prev => [...prev, { ...fallbackLoc, label: "You are here", type: "user_location" }]);
-    fetchDefaultMap(fallbackLoc.lat, fallbackLoc.lng);
+    if ("geolocation" in navigator) {
+      navigator.geolocation.getCurrentPosition(
+        (position) => {
+          const loc = { lat: position.coords.latitude, lng: position.coords.longitude };
+          setUserLocation(loc);
+          setMarkers(prev => [...prev, { ...loc, label: "You are here", type: "user_location" }]);
+          fetchDefaultMap(loc.lat, loc.lng);
+        },
+        (error) => {
+          console.error("Error getting location: ", error);
+          const fallbackLoc = { lat: 35.5024, lng: 11.0622 };
+          setUserLocation(fallbackLoc);
+          setMarkers(prev => [...prev, { ...fallbackLoc, label: "You are here", type: "user_location" }]);
+          fetchDefaultMap(fallbackLoc.lat, fallbackLoc.lng);
+        },
+        { enableHighAccuracy: true, timeout: 5000 }
+      );
+    } else {
+      const fallbackLoc = { lat: 35.5024, lng: 11.0622 };
+      setUserLocation(fallbackLoc);
+      setMarkers(prev => [...prev, { ...fallbackLoc, label: "You are here", type: "user_location" }]);
+      fetchDefaultMap(fallbackLoc.lat, fallbackLoc.lng);
+    }
   }, [])
 
   useEffect(() => {
