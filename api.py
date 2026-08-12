@@ -393,8 +393,8 @@ async def default_map_endpoint(req: dict):
     except:
         pass
         
-    # 2. Fetch UHI Map
-    uhi_res = await session.call_tool('get_urban_heat_island_heatmap', {'latitude': lat, 'longitude': lng, 'radius': 1500})
+    # 2. Fetch UHI Map (Reduced to 800m to prevent Overpass timeouts in dense cities)
+    uhi_res = await session.call_tool('get_urban_heat_island_heatmap', {'latitude': lat, 'longitude': lng, 'radius': 800})
     uhi_geojson = None
     try:
         uhi_data = json.loads(''.join([c.text for c in uhi_res.content if c.type == 'text']))
@@ -402,8 +402,8 @@ async def default_map_endpoint(req: dict):
     except:
         pass
         
-    # 3. Fetch Cooling Spots
-    spots_res = await session.call_tool('find_cooling_spots', {'latitude': lat, 'longitude': lng, 'radius': 1500})
+    # 3. Fetch Cooling Spots (Reduced to 800m to prevent Overpass timeouts)
+    spots_res = await session.call_tool('find_cooling_spots', {'latitude': lat, 'longitude': lng, 'radius': 800})
     markers = []
     try:
         spots_data = json.loads(''.join([c.text for c in spots_res.content if c.type == 'text']))
