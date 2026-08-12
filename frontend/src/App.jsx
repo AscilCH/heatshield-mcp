@@ -449,7 +449,9 @@ function App() {
         body: JSON.stringify({
           message: userMessage,
           history: history,
-          userLocation: userLocation
+          // If browser GPS is still pending, fallback to Sfax so the AI always has a location context
+          latitude: userLocation?.lat ?? 35.5024,
+          longitude: userLocation?.lng ?? 11.0622
         })
       })
       
