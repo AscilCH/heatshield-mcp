@@ -36,7 +36,7 @@ async def geocode_location(query: str) -> str:
     If the user asks for a relative location, use the physical coordinates provided in your system prompt instead.
     
     Args:
-        query: The name of the city or location (e.g., "Karlsruhe, Germany")
+        query: The name of the city or location (e.g., "Paris, France")
     """
     return await geocoding.search_location(query)
 

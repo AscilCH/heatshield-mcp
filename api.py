@@ -196,6 +196,12 @@ async def chat_endpoint(req: ChatRequest):
             f"Instead, use the coordinates of the last city discussed in the conversation history. "
             f"If no other location has been discussed yet, you MUST directly use their physical device coordinates ({req.latitude}, {req.longitude}) for all tool calls."
         )
+    else:
+        system_prompt += (
+            " WARNING: The user's browser blocked geolocation and IP location failed. YOU DO NOT KNOW WHERE THEY ARE. "
+            "If they ask for something 'nearby' and you have no previous city in the chat history, YOU MUST ASK THEM to type their city name. "
+            "DO NOT hallucinate a default city. DO NOT assume they are in Paris or anywhere else. Ask them where they are."
+        )
 
     messages = [{"role": "system", "content": system_prompt}]
     messages.extend(req.history)
