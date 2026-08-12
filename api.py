@@ -190,7 +190,11 @@ async def chat_endpoint(req: ChatRequest):
     )
     
     if req.latitude is not None and req.longitude is not None:
-        system_prompt += f" The user's device is currently located at Latitude {req.latitude}, Longitude {req.longitude}. If they ask for information 'near me', 'here', or for their current location, you MUST use these exact coordinates directly in your tool calls without geocoding."
+        system_prompt += (
+            f" The user's physical device is located at Latitude {req.latitude}, Longitude {req.longitude}. "
+            f"If they ask for information 'nearby' or 'here', use the last city/location discussed in the conversation history. "
+            f"If no other location has been discussed yet, fallback to using their physical device coordinates."
+        )
 
     messages = [{"role": "system", "content": system_prompt}]
     messages.extend(req.history)
