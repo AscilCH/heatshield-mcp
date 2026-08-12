@@ -65,7 +65,7 @@ async def get_air_quality_forecast(latitude: float, longitude: float, days: int 
     return await air_quality.get_air_quality_forecast(latitude, longitude, days)
 
 @mcp.tool()
-async def find_cooling_spots(latitude: float, longitude: float, radius: int = 800) -> str:
+async def find_cooling_spots(latitude: float, longitude: float, radius: int = 5000) -> str:
     """
     Use spatial analytics to find nearby cooling shelters (parks, pools, libraries, fountains).
     Requires latitude, longitude, and an optional radius in meters.
