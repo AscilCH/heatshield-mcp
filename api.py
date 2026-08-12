@@ -103,7 +103,8 @@ app.add_middleware(
 class ChatRequest(BaseModel):
     message: str
     history: typing.List[dict] = []
-    userLocation: typing.Optional[dict] = None
+    latitude: typing.Optional[float] = None
+    longitude: typing.Optional[float] = None
 
 @app.websocket("/ws/alerts")
 async def websocket_endpoint(websocket: WebSocket):
@@ -188,10 +189,8 @@ async def chat_endpoint(req: ChatRequest):
         "EMERGENCIES: If the user explicitly states they are calling emergency services or experiencing a critical emergency, you MUST call the `broadcast_emergency_alert` tool to trigger the global siren on all connected devices."
     )
     
-    if req.userLocation:
-        lat = req.userLocation.get('lat')
-        lng = req.userLocation.get('lng')
-        system_prompt += f" The user's device is currently located at Latitude {lat}, Longitude {lng}. If they ask for information 'near me', 'here', or for their current location, you MUST use these exact coordinates directly in your tool calls without geocoding."
+    if req.latitude is not None and req.longitude is not None:
+        system_prompt += f" The user's device is currently located at Latitude {req.latitude}, Longitude {req.longitude}. If they ask for information 'near me', 'here', or for their current location, you MUST use these exact coordinates directly in your tool calls without geocoding."
 
     messages = [{"role": "system", "content": system_prompt}]
     messages.extend(req.history)
