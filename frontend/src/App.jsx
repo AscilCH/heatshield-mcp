@@ -586,23 +586,10 @@ function App() {
         .catch(err => console.error("Error fetching default map:", err));
     };
 
-    const handleGeolocationFallback = async () => {
-      try {
-        const response = await fetch('https://ipwho.is/');
-        const data = await response.json();
-        if (data.latitude && data.longitude) {
-          const loc = { lat: data.latitude, lng: data.longitude, name: data.city || "Your Area" };
-          setUserLocation(loc);
-          setMarkers([{ ...loc, label: `You are here (${data.city || 'IP'})`, type: "user_location" }]);
-          fetchDefaultMap(loc.lat, loc.lng, data.city);
-        } else {
-          throw new Error("Invalid IP geo data");
-        }
-      } catch (err) {
-        console.warn("Geolocation & IP fallback failed: Location is unknown.", err);
-        setUserLocation(null);
-        setMarkers([]);
-      }
+    const handleGeolocationFallback = () => {
+      console.warn("Geolocation unavailable or denied: Location remains unselected.");
+      setUserLocation(null);
+      setMarkers([]);
     };
 
     if ("geolocation" in navigator) {
@@ -614,7 +601,7 @@ function App() {
           fetchDefaultMap(loc.lat, loc.lng);
         },
         (error) => {
-          console.error("Error getting location from GPS, falling back to IP: ", error);
+          console.warn("GPS location permission not granted, leaving location unassigned: ", error);
           handleGeolocationFallback();
         },
         { enableHighAccuracy: true, timeout: 5000 }
