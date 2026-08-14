@@ -380,7 +380,8 @@ async def chat_endpoint(req: ChatRequest):
         "1. DATA: Fetch real environmental data using data tools (`get_weather_and_heat_risk`, `get_air_quality_forecast`, `geocode_location`). "
         "2. COMPUTE: NEVER do numerical math or estimate thresholds inline. ALWAYS call deterministic compute tools (`compute_wbgt`, `compute_work_rest_cycle`, `compute_heat_risk`). "
         "3. CANVAS: Render dynamic UI primitives using `open_comparison_view` for matrices, `draw_map_layer` for custom geometries, and `set_camera_view` for camera navigation. "
-        "CRITICAL UI INSTRUCTION: When you call tools that update the UI (maps, charts, work/rest cards), YOU MUST ALSO WRITE A COMPREHENSIVE TEXT RESPONSE explaining your findings, highlighting risk levels, and summarizing the action plan."
+        "CRITICAL UI INSTRUCTION: When you call tools that update the UI (maps, charts, work/rest cards), YOU MUST ALSO WRITE A COMPREHENSIVE TEXT RESPONSE explaining your findings, highlighting risk levels, and summarizing the action plan. "
+        "VOICE & CONVERSATIONAL STYLE: Speak directly, warmly, and professionally to the user in the first person ('I', 'let's'). NEVER speak about the user in the third person (e.g. NEVER write 'The user is asking...' or 'Because geolocation is blocked, I will ask the user...'). Speak directly to them: 'To give you an accurate assessment, which city are you in?'"
     )
     
     if req.latitude is not None and req.longitude is not None:
@@ -391,9 +392,9 @@ async def chat_endpoint(req: ChatRequest):
         )
     else:
         system_prompt += (
-            " WARNING: The user's browser blocked geolocation and IP location failed. YOU DO NOT KNOW WHERE THEY ARE. "
-            "If they ask for something 'nearby' and you have no previous city in the chat history, YOU MUST ASK THEM to type their city name. "
-            "DO NOT hallucinate a default city. DO NOT assume they are in Paris or anywhere else. Ask them where they are."
+            " LOCATION STATUS: Device geolocation is unavailable. "
+            "If the user asks for location-dependent advice without specifying a city, ask them directly: 'Which city or area are you in so I can check the live heat conditions for you?' "
+            "DO NOT assume or hallucinate a default city. DO NOT narrate system constraints."
         )
 
     messages = [{"role": "system", "content": system_prompt}]
