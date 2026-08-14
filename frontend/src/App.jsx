@@ -31,62 +31,96 @@ function MapController({ markers, routeGeojson, uhiGeojson, isochroneGeojson, he
   const map = useMap()
   
   useEffect(() => {
-    let bounds = new L.LatLngBounds();
-    let hasBounds = false;
+    // 1. High Priority: Heat Dome Footprint
+    if (heatDomeGeojson && heatDomeGeojson.features && heatDomeGeojson.features.length > 0) {
+      try {
+        const geoJsonLayer = L.geoJSON(heatDomeGeojson);
+        const b = geoJsonLayer.getBounds();
+        if (b.isValid()) {
+          setTimeout(() => {
+            map.invalidateSize();
+            map.flyToBounds(b, { padding: [50, 50], maxZoom: 7, duration: 1.5 });
+          }, 100);
+          return;
+        }
+      } catch(e) {
+        console.error("Error flying to heat dome bounds:", e);
+      }
+    }
 
-    // Add marker bounds
+    // 2. High Priority: Walking Route
+    if (routeGeojson && routeGeojson.features && routeGeojson.features.length > 0) {
+      try {
+        const geoJsonLayer = L.geoJSON(routeGeojson);
+        const b = geoJsonLayer.getBounds();
+        if (b.isValid()) {
+          setTimeout(() => {
+            map.invalidateSize();
+            map.flyToBounds(b, { padding: [50, 50], maxZoom: 15, duration: 1.5 });
+          }, 100);
+          return;
+        }
+      } catch(e) {
+        console.error("Error flying to route bounds:", e);
+      }
+    }
+
+    // 3. High Priority: UHI Heatmap
+    if (uhiGeojson && uhiGeojson.features && uhiGeojson.features.length > 0) {
+      try {
+        const geoJsonLayer = L.geoJSON(uhiGeojson);
+        const b = geoJsonLayer.getBounds();
+        if (b.isValid()) {
+          setTimeout(() => {
+            map.invalidateSize();
+            map.flyToBounds(b, { padding: [50, 50], maxZoom: 14, duration: 1.5 });
+          }, 100);
+          return;
+        }
+      } catch(e) {
+        console.error("Error flying to UHI bounds:", e);
+      }
+    }
+
+    // 4. High Priority: Walkability Isochrone
+    if (isochroneGeojson && isochroneGeojson.features && isochroneGeojson.features.length > 0) {
+      try {
+        const geoJsonLayer = L.geoJSON(isochroneGeojson);
+        const b = geoJsonLayer.getBounds();
+        if (b.isValid()) {
+          setTimeout(() => {
+            map.invalidateSize();
+            map.flyToBounds(b, { padding: [50, 50], maxZoom: 14, duration: 1.5 });
+          }, 100);
+          return;
+        }
+      } catch(e) {
+        console.error("Error flying to isochrone bounds:", e);
+      }
+    }
+
+    // 5. Markers: If AI Inspection Point / Target exists, fly to it; otherwise fly to user location
     if (markers && markers.length > 0) {
-      markers.forEach(m => {
+      const nonUserMarkers = markers.filter(m => m.type !== 'user_location');
+      const targetMarkers = nonUserMarkers.length > 0 ? nonUserMarkers : markers;
+      
+      let bounds = new L.LatLngBounds();
+      targetMarkers.forEach(m => {
         if (m.lat && m.lng) {
           bounds.extend([m.lat, m.lng]);
-          hasBounds = true;
         }
       });
-    }
-
-    // Add route bounds if present
-    if (routeGeojson && routeGeojson.features) {
-      routeGeojson.features.forEach(f => {
-        if (f.geometry && f.geometry.coordinates) {
-          const coords = f.geometry.coordinates;
-          coords.forEach(coord => {
-            if (Array.isArray(coord) && coord.length === 2) {
-              bounds.extend([coord[1], coord[0]]); // GeoJSON is [lon, lat], Leaflet is [lat, lon]
-              hasBounds = true;
-            }
-          });
-        }
-      });
-    }
-
-    // Add isochrone bounds if present
-    if (isochroneGeojson && isochroneGeojson.features) {
-      const geoJsonLayer = L.geoJSON(isochroneGeojson);
-      bounds.extend(geoJsonLayer.getBounds());
-      hasBounds = true;
-    }
-
-    // Add UHI heatmap bounds if present
-    if (uhiGeojson && uhiGeojson.features) {
-      const geoJsonLayer = L.geoJSON(uhiGeojson);
-      bounds.extend(geoJsonLayer.getBounds());
-      hasBounds = true;
-    }
-
-    // Add Heat Dome bounds if present
-    if (heatDomeGeojson && heatDomeGeojson.features) {
-      const geoJsonLayer = L.geoJSON(heatDomeGeojson);
-      bounds.extend(geoJsonLayer.getBounds());
-      hasBounds = true;
-    }
-
-    if (hasBounds && bounds.isValid()) {
-      setTimeout(() => {
-        map.invalidateSize();
-        map.fitBounds(bounds, { padding: [50, 50], maxZoom: 14, duration: 2 });
-      }, 100);
-    } else {
-      setTimeout(() => map.invalidateSize(), 100);
+      
+      if (bounds.isValid()) {
+        setTimeout(() => {
+          map.invalidateSize();
+          if (targetMarkers.length === 1) {
+            map.flyTo([targetMarkers[0].lat, targetMarkers[0].lng], 13, { duration: 1.5 });
+          } else {
+            map.flyToBounds(bounds, { padding: [50, 50], maxZoom: 14, duration: 1.5 });
+          }
+        }, 100);
+      }
     }
   }, [markers, routeGeojson, uhiGeojson, isochroneGeojson, heatDomeGeojson, map])
 
