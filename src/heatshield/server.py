@@ -530,6 +530,80 @@ async def set_camera_view(
         "zoom": zoom_level
     })
 
+# ==========================================
+# DETERMINISTIC COMPUTE PRIMITIVES (Pure Math)
+# ==========================================
+
+@mcp.tool()
+async def compute_wbgt(
+    temperature_celsius: float,
+    humidity_percent: float,
+    wind_speed_kmh: float = 5.0,
+    solar_radiation_wm2: float = 500.0
+) -> str:
+    """
+    Computes outdoor Wet Bulb Globe Temperature (WBGT) using the Liljegren / ABM formula.
+    Pure mathematical function - no network calls.
+    
+    Args:
+        temperature_celsius: Ambient temperature in °C.
+        humidity_percent: Relative humidity (0-100%).
+        wind_speed_kmh: Wind speed in km/h.
+        solar_radiation_wm2: Direct/diffuse solar radiation in W/m².
+    """
+    import json
+    wbgt = occupational.calculate_wbgt(temperature_celsius, humidity_percent, wind_speed_kmh, solar_radiation_wm2)
+    return json.dumps({
+        "type": "compute_wbgt",
+        "wbgt_celsius": wbgt,
+        "formula": "Liljegren / ABM Shade + Solar/Wind Heuristic",
+        "inputs": {
+            "temperature_celsius": temperature_celsius,
+            "humidity_percent": humidity_percent,
+            "wind_speed_kmh": wind_speed_kmh,
+            "solar_radiation_wm2": solar_radiation_wm2
+        }
+    })
+
+@mcp.tool()
+async def compute_work_rest_cycle(
+    wbgt_celsius: float,
+    workload_intensity: str = "Moderate"
+) -> str:
+    """
+    Evaluates official NIOSH/OSHA Work/Rest cycles and hydration thresholds given a WBGT index.
+    Pure mathematical/threshold matrix evaluation.
+    
+    Args:
+        wbgt_celsius: Wet Bulb Globe Temperature in °C.
+        workload_intensity: 'Light', 'Moderate', or 'Heavy'.
+    """
+    import json
+    guidance = occupational.get_niosh_guidance(wbgt_celsius, workload_intensity)
+    return json.dumps(guidance)
+
+@mcp.tool()
+async def compute_heat_risk(
+    apparent_temperature_celsius: float,
+    uv_index: float
+) -> str:
+    """
+    Calculates WHO/CDC environmental heat risk category.
+    Pure threshold evaluation.
+    
+    Args:
+        apparent_temperature_celsius: Apparent 'feels like' temperature in °C.
+        uv_index: Peak UV index (0-15).
+    """
+    import json
+    risk = weather.calculate_heat_risk(apparent_temperature_celsius, uv_index)
+    return json.dumps({
+        "type": "compute_heat_risk",
+        "heat_risk_level": risk,
+        "apparent_temperature_celsius": apparent_temperature_celsius,
+        "uv_index": uv_index
+    })
+
 # HOW MCP COMMUNICATION WORKS:
 # When we call mcp.run(transport="stdio"), the server enters an infinite loop.
 # It listens on stdin for requests from the LLM client, routes them to the 
