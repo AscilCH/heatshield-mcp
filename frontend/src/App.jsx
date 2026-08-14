@@ -994,11 +994,15 @@ function App() {
                 key={"heatDome" + Date.now()} 
                 data={heatDomeGeojson} 
                 style={(feature) => ({
-                  color: feature.properties?.color || '#e11d48',
-                  fillColor: feature.properties?.color || '#e11d48',
-                  weight: 2,
-                  fillOpacity: feature.properties?.fillOpacity ?? 0.2
+                  color: '#ff1744',
+                  fillColor: '#f43f5e',
+                  weight: 3.5,
+                  dashArray: '8, 8',
+                  fillOpacity: 0.35
                 })}
+                onEachFeature={(feature, layer) => {
+                  layer.bindPopup("<div style='color:#1e293b; font-family:sans-serif; padding:4px;'><strong>🔥 500hPa Blocking High (Heat Dome)</strong><br/><span style='font-size:12px; color:#475569;'>Persistent upper-atmospheric ridge trapping extreme surface heat for 3+ consecutive days.</span></div>");
+                }}
               />
             </Pane>
           )}
