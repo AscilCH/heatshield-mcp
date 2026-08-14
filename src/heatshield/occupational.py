@@ -10,9 +10,12 @@ def calculate_wbgt(temp_c: float, humidity_percent: float, wind_speed_kmh: float
     """
     Calculates an estimated outdoor Wet Bulb Globe Temperature (WBGT) in Celsius.
     
-    This uses the Australian Bureau of Meteorology (ABM) approximation for shade WBGT,
-    and applies a heuristic adjustment for solar radiation and wind cooling to estimate
-    full outdoor sun exposure (Globe Temperature impact).
+    Formula:
+      1. Vapor Pressure: e = (humidity / 100) * 6.105 * exp((17.27 * T) / (237.7 + T))
+      2. ABM Shade WBGT: WBGT_shade = 0.567 * T + 0.393 * e + 3.94
+      3. Solar Radiation Penalty: +0.003 * solar_rad_wm2
+      4. Convective Wind Cooling Benefit: -0.5 * sqrt(v_ms), where v_ms = wind_speed_kmh / 3.6
+         (Convective boundary layer heat transfer follows Nu ~ Re^0.5, saturating at higher wind speeds).
     
     Args:
         temp_c: Air temperature in Celsius
@@ -30,11 +33,9 @@ def calculate_wbgt(temp_c: float, humidity_percent: float, wind_speed_kmh: float
     wbgt_shade = 0.567 * temp_c + 0.393 * e + 3.94
     
     # 3. Apply solar radiation penalty (Globe Temp impact)
-    # Roughly, full sun (1000 W/m2) adds about 2-3 C to WBGT compared to shade.
     solar_penalty = solar_rad_wm2 * 0.003 
     
-    # 4. Apply wind cooling benefit
-    # Wind reduces the heat stress slightly (converted km/h to m/s for heuristic)
+    # 4. Apply convective wind cooling benefit (Nu ~ Re^0.5)
     wind_ms = wind_speed_kmh / 3.6
     wind_benefit = math.sqrt(wind_ms) * 0.5 if wind_ms > 0 else 0
     
