@@ -173,10 +173,18 @@ async def stream_gemini_response(messages, tools):
                 
                 if delta.tool_calls:
                     for tc in delta.tool_calls:
-                        if tc.index not in tool_calls_dict:
-                            tool_calls_dict[tc.index] = {"id": tc.id, "type": "function", "function": {"name": tc.function.name, "arguments": ""}}
-                        if tc.function.arguments:
-                            tool_calls_dict[tc.index]["function"]["arguments"] += tc.function.arguments
+                        key = tc.id if tc.id else (tc.index if tc.index is not None else 0)
+                        if key not in tool_calls_dict:
+                            tool_calls_dict[key] = {"id": tc.id or f"call_{len(tool_calls_dict)}", "type": "function", "function": {"name": tc.function.name or "", "arguments": ""}}
+                        elif tc.function and tc.function.name and tool_calls_dict[key]["function"]["name"] and tc.function.name != tool_calls_dict[key]["function"]["name"]:
+                            key = f"{key}_{len(tool_calls_dict)}"
+                            tool_calls_dict[key] = {"id": tc.id or f"call_{len(tool_calls_dict)}", "type": "function", "function": {"name": tc.function.name, "arguments": ""}}
+                            
+                        if tc.function:
+                            if tc.function.name and not tool_calls_dict[key]["function"]["name"]:
+                                tool_calls_dict[key]["function"]["name"] = tc.function.name
+                            if tc.function.arguments:
+                                tool_calls_dict[key]["function"]["arguments"] += tc.function.arguments
             
             # Reconstruct the final message format expected by the caller
             final_msg = MockMessage(full_content)
@@ -422,21 +430,41 @@ async def chat_endpoint(req: ChatRequest):
             loop_count += 1
             for tool_call in msg.tool_calls:
                 tool_name = tool_call.function.name
+                raw_args = getattr(tool_call.function, "arguments", "") or "{}"
+                
+                parsed_args_list = []
                 try:
-                    tool_args = json.loads(tool_call.function.arguments)
-                except json.JSONDecodeError as e:
-                    trace_msg = f"[UC TRACE] ⚠️ LLM generated invalid JSON for tool {tool_name}: {e}"
+                    parsed_args_list = [json.loads(raw_args)]
+                except json.JSONDecodeError:
+                    decoder = json.JSONDecoder()
+                    s = raw_args.strip()
+                    idx = 0
+                    while idx < len(s):
+                        while idx < len(s) and s[idx].isspace():
+                            idx += 1
+                        if idx >= len(s):
+                            break
+                        try:
+                            obj, end_idx = decoder.raw_decode(s, idx)
+                            parsed_args_list.append(obj)
+                            idx = end_idx
+                        except Exception:
+                            break
+                            
+                if not parsed_args_list:
+                    trace_msg = f"[UC TRACE] ⚠️ LLM generated invalid JSON for tool {tool_name}: {raw_args}"
                     print(trace_msg)
                     yield json.dumps({"type": "trace", "message": trace_msg}) + "\n"
                     tool_results_text += f"\nTool {tool_name} failed: Invalid JSON arguments. Please correct your JSON formatting.\n"
                     continue
                 
-                trace_msg = f"[UC TRACE] 🤖 LLM decided to call tool: {tool_name} with args: {json.dumps(tool_args)}"
-                print(trace_msg)
-                yield json.dumps({"type": "trace", "message": trace_msg}) + "\n"
-                
-                # YIELD TOOL CALL EVENT TO FRONTEND
-                yield json.dumps({"type": "tool_call", "name": tool_name}) + "\n"
+                for tool_args in parsed_args_list:
+                    trace_msg = f"[UC TRACE] 🤖 LLM decided to call tool: {tool_name} with args: {json.dumps(tool_args)}"
+                    print(trace_msg)
+                    yield json.dumps({"type": "trace", "message": trace_msg}) + "\n"
+                    
+                    # YIELD TOOL CALL EVENT TO FRONTEND
+                    yield json.dumps({"type": "tool_call", "name": tool_name}) + "\n"
                 
                 if tool_name == "submit_geospatial_tasks":
                     # --- CONCURRENT ORCHESTRATOR PIPELINE ---
