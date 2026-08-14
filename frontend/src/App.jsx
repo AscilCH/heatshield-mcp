@@ -381,8 +381,9 @@ function App() {
   const [input, setInput] = useState('')
   const [isLoading, setIsLoading] = useState(false)
   const [markers, setMarkers] = useState([])
-  const [contacts, setContacts] = useState([])
   const [forecastData, setForecastData] = useState(null)
+  const [showWbgtForecast, setShowWbgtForecast] = useState(true)
+  const [isStatCardCollapsed, setIsStatCardCollapsed] = useState(false)
   const [aqForecastData, setAqForecastData] = useState(null)
   const [uhiGeojson, setUhiGeojson] = useState(null)
   const [heatDomeGeojson, setHeatDomeGeojson] = useState(null)
@@ -675,8 +676,10 @@ function App() {
                             setMessages(prev => [...prev, { role: 'assistant', content: cleanedText }]);
                         }
                         setStreamingMessage("");
-                        if (newMarkers !== undefined) setMarkers(newMarkers);
-                        if (forecast !== undefined) setForecastData(forecast);
+                        if (forecast !== undefined) {
+                            setForecastData(forecast);
+                            setShowWbgtForecast(true);
+                        }
                         if (aq_forecast !== undefined) setAqForecastData(aq_forecast);
                         if (uhi_geojson !== undefined) setUhiGeojson(uhi_geojson);
                         if (heat_dome_geojson !== undefined) setHeatDomeGeojson(heat_dome_geojson);
@@ -1221,67 +1224,88 @@ function App() {
       <div className="panel-dock">
         {currentWeather && (
           <div className="floating-stat-card">
-              <div className="stat-card">
-                <div className="stat-card-header">
-                  <span>TODAY'S READING</span>
-                  <span>📍 {userLocation?.name || currentWeather.location || "Location"}</span>
+              <div className="stat-card" style={{ padding: isStatCardCollapsed ? '16px 20px' : '24px' }}>
+                <div className="stat-card-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: isStatCardCollapsed ? 0 : '12px' }}>
+                  <div style={{ display: 'flex', flexDirection: 'column' }}>
+                    <span style={{ fontSize: '11px', letterSpacing: '1px', color: 'var(--text-faint)', fontWeight: 600 }}>TODAY'S READING</span>
+                    <span style={{ fontSize: '13px', color: 'var(--text-secondary)' }}>📍 {userLocation?.name || currentWeather.location || "Location"}</span>
+                  </div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    {isStatCardCollapsed && (
+                      <span style={{ fontSize: '13px', fontWeight: 700, color: 'var(--risk-extreme)' }}>
+                        {Math.round(currentWeather.temperature_celsius)}°C • {currentWeather.heat_risk_level || "RISK"}
+                      </span>
+                    )}
+                    <button 
+                      className="close-btn" 
+                      style={{ fontSize: '12px', padding: '4px 8px', borderRadius: '6px', background: 'rgba(255,255,255,0.06)', color: 'var(--text-secondary)' }}
+                      onClick={() => setIsStatCardCollapsed(!isStatCardCollapsed)}
+                      title={isStatCardCollapsed ? "Expand Reading" : "Collapse Reading"}
+                    >
+                      {isStatCardCollapsed ? '▼ Expand' : '▲ Minimize'}
+                    </button>
+                  </div>
                 </div>
               
-              <div className="stat-card-body">
-                <div className="risk-pill-container">
-                  <div className="risk-pill extreme-pulse">
-                    <span className="risk-dot"></span>
-                    <div className="risk-text">
-                      • {currentWeather.heat_risk_level || "UNKNOWN"} RISK
+              {!isStatCardCollapsed && (
+                <>
+                  <div className="stat-card-body">
+                    <div className="risk-pill-container">
+                      <div className="risk-pill extreme-pulse">
+                        <span className="risk-dot"></span>
+                        <div className="risk-text">
+                          • {currentWeather.heat_risk_level || "UNKNOWN"} RISK
+                        </div>
+                      </div>
                     </div>
                   </div>
-                </div>
-              </div>
-              
-              <div className="radial-gauge-container">
-                <div 
-                  className="radial-gauge" 
-                  data-risk={currentWeather.heat_risk_level || "UNKNOWN"}
-                  style={{
-                    background: (() => {
-                      const temp = currentWeather.temperature_celsius || 20;
-                      const percentage = Math.max(0, Math.min(100, ((temp - 10) / (45 - 10)) * 100));
-                      return `conic-gradient(from 200deg, #10b981 0%, #eab308 ${Math.min(percentage, 35)}%, #f97316 ${Math.min(percentage, 65)}%, #ef4444 ${percentage}%, rgba(255,255,255,0.05) ${percentage}%, rgba(255,255,255,0.05) 100%)`;
-                    })()
-                  }}
-                >
-                  <div className="radial-gauge-text">
-                    <span className="temp">{Math.round(currentWeather.temperature_celsius)}°</span>
-                    <span className="feels-like">FEELS {Math.round(currentWeather.feels_like_celsius || currentWeather.apparent_temperature_celsius || currentWeather.temperature_celsius)}</span>
+                  
+                  <div className="radial-gauge-container">
+                    <div 
+                      className="radial-gauge" 
+                      data-risk={currentWeather.heat_risk_level || "UNKNOWN"}
+                      style={{
+                        background: (() => {
+                          const temp = currentWeather.temperature_celsius || 20;
+                          const percentage = Math.max(0, Math.min(100, ((temp - 10) / (45 - 10)) * 100));
+                          return `conic-gradient(from 200deg, #10b981 0%, #eab308 ${Math.min(percentage, 35)}%, #f97316 ${Math.min(percentage, 65)}%, #ef4444 ${percentage}%, rgba(255,255,255,0.05) ${percentage}%, rgba(255,255,255,0.05) 100%)`;
+                        })()
+                      }}
+                    >
+                      <div className="radial-gauge-text">
+                        <span className="temp">{Math.round(currentWeather.temperature_celsius)}°</span>
+                        <span className="feels-like">FEELS {Math.round(currentWeather.feels_like_celsius || currentWeather.apparent_temperature_celsius || currentWeather.temperature_celsius)}</span>
+                      </div>
+                    </div>
+                    
+                    <div className="stat-grid">
+                      <div className="stat-item">
+                        <span className="stat-label">HUMIDITY</span>
+                        <span className="stat-value">{Math.round(currentWeather.humidity_percent)}%</span>
+                      </div>
+                      <div className="stat-item">
+                        <span className="stat-label">MAX UV</span>
+                        <span className="stat-value">{currentWeather.uv_index?.toFixed(2) || "8.5"}</span>
+                      </div>
+                      <div className="stat-item">
+                        <span className="stat-label">PEAK HRS</span>
+                        <span className="stat-value">12-4PM</span>
+                      </div>
+                    </div>
                   </div>
-                </div>
-                
-                <div className="stat-grid">
-                  <div className="stat-item">
-                    <span className="stat-label">HUMIDITY</span>
-                    <span className="stat-value">{Math.round(currentWeather.humidity_percent)}%</span>
-                  </div>
-                  <div className="stat-item">
-                    <span className="stat-label">MAX UV</span>
-                    <span className="stat-value">{currentWeather.uv_index?.toFixed(2) || "8.5"}</span>
-                  </div>
-                  <div className="stat-item">
-                    <span className="stat-label">PEAK HRS</span>
-                    <span className="stat-value">12-4PM</span>
-                  </div>
-                </div>
-              </div>
-              
-              {safetyAdvice && (
-                <div className="recommendations-card">
-                  <h3><MapPin size={18} /> Safety recommendations</h3>
-                  <ul>
-                    <li>Avoid outdoor physical exertion during peak afternoon hours.</li>
-                    <li>Stay hydrated by drinking water regularly, even without thirst.</li>
-                    <li>Seek shaded or air-conditioned spaces — several parks are nearby.</li>
-                    <li>Wear lightweight, loose-fitting, light-colored clothing.</li>
-                  </ul>
-                </div>
+                  
+                  {safetyAdvice && (
+                    <div className="recommendations-card">
+                      <h3><MapPin size={18} /> Safety recommendations</h3>
+                      <ul>
+                        <li>Avoid outdoor physical exertion during peak afternoon hours.</li>
+                        <li>Stay hydrated by drinking water regularly, even without thirst.</li>
+                        <li>Seek shaded or air-conditioned spaces — several parks are nearby.</li>
+                        <li>Wear lightweight, loose-fitting, light-colored clothing.</li>
+                      </ul>
+                    </div>
+                  )}
+                </>
               )}
             </div>
           </div>
@@ -1293,9 +1317,9 @@ function App() {
                 <div className="forecast-overlay" style={{ width: '100%' }}>
                    <ForecastWidget data={forecastData} onClose={() => setForecastData(null)} />
                 </div>
-                {forecastData[0]?.wbgt_celsius && (
+                {forecastData[0]?.wbgt_celsius && showWbgtForecast && (
                   <div className="forecast-overlay" style={{ width: '100%' }}>
-                     <WBGTForecastWidget data={forecastData} onClose={() => {}} />
+                     <WBGTForecastWidget data={forecastData} onClose={() => setShowWbgtForecast(false)} />
                   </div>
                 )}
               </>

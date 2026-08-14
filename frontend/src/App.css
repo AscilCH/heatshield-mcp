@@ -92,8 +92,9 @@ body {
   position: absolute;
   top: 20px;
   left: 20px;
-  bottom: 120px;
+  bottom: 24px;
   width: 400px;
+  max-height: calc(100vh - 44px);
   background-color: var(--bg-panel);
   border: 1px solid var(--line);
   border-radius: 24px;
@@ -129,27 +130,38 @@ body {
   background: rgba(255, 255, 255, 0.1);
 }
 
-/* Panel Dock UI */
+/* Panel Dock UI (Right Side Widgets) */
 .panel-dock {
-  position: absolute;
+  position: fixed;
   top: 20px;
   right: 20px;
-  width: 360px;
   bottom: 20px;
+  width: 360px;
+  max-height: calc(100vh - 40px);
   z-index: 2000;
-  pointer-events: none;
+  pointer-events: auto;
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 14px;
   overflow-y: auto;
+  overflow-x: hidden;
+  padding-right: 4px;
+  overscroll-behavior: contain;
 }
 
 .panel-dock::-webkit-scrollbar {
   width: 6px;
 }
-.panel-dock::-webkit-scrollbar-thumb {
-  background: rgba(255, 255, 255, 0.2);
+.panel-dock::-webkit-scrollbar-track {
+  background: rgba(0, 0, 0, 0.25);
   border-radius: 10px;
+}
+.panel-dock::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.3);
+  border-radius: 10px;
+}
+.panel-dock::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.5);
 }
 
 /* Stat Card UI */
@@ -485,25 +497,14 @@ body {
 }
 
 /* ===================================================================
-   PANEL DOCK 
+   PANEL DOCK CARDS
    =================================================================== */
-.panel-dock {
-  position: fixed;
-  top: 16px;
-  right: 16px;
-  width: 340px;
-  max-height: calc(100vh - 32px);
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-  overflow-y: auto;
-  z-index: 1500;
-}
 .panel-dock-card {
   background: var(--bg-panel-raised);
   border: 1px solid var(--line);
   border-radius: var(--radius-card);
   flex-shrink: 0;
+  pointer-events: auto;
 }
 .panel-dock-card.collapsed {
   padding: 10px 16px;
@@ -1245,20 +1246,21 @@ body {
 /* Map Overlays */
 .map-legend {
   position: absolute;
-  bottom: 30px;
-  right: 20px;
-  background: rgba(38, 32, 29, 0.75);
+  bottom: 24px;
+  left: 440px;
+  background: rgba(38, 32, 29, 0.85);
   backdrop-filter: blur(12px);
-  padding: 10px 16px;
+  padding: 8px 16px;
   border-radius: 12px;
   display: flex;
   gap: 16px;
-  font-size: 13px;
+  font-size: 12px;
   font-weight: 500;
   color: var(--text-primary);
   z-index: 1000;
   border: 1px solid var(--line);
   box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+  pointer-events: auto;
 }
 
 .map-legend span {
