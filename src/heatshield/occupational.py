@@ -10,12 +10,15 @@ def calculate_wbgt(temp_c: float, humidity_percent: float, wind_speed_kmh: float
     """
     Calculates an estimated outdoor Wet Bulb Globe Temperature (WBGT) in Celsius.
     
-    Formula:
-      1. Vapor Pressure: e = (humidity / 100) * 6.105 * exp((17.27 * T) / (237.7 + T))
-      2. ABM Shade WBGT: WBGT_shade = 0.567 * T + 0.393 * e + 3.94
-      3. Solar Radiation Penalty: +0.003 * solar_rad_wm2
-      4. Convective Wind Cooling Benefit: -0.5 * sqrt(v_ms), where v_ms = wind_speed_kmh / 3.6
-         (Convective boundary layer heat transfer follows Nu ~ Re^0.5, saturating at higher wind speeds).
+    Model Architecture:
+      1. Vapor Pressure: e = (humidity / 100) * 6.105 * exp((17.27 * T) / (237.7 + T)) [Tetens Equation]
+      2. Baseline Shade WBGT: WBGT_shade = 0.567 * T + 0.393 * e + 3.94 [Australian Bureau of Meteorology (BOM)]
+      3. Outdoor Solar Adjustment: +0.003 * solar_rad_wm2 [Heuristic outdoor solar loading]
+      4. Conservative Wind Adjustment: -0.5 * sqrt(v_ms), where v_ms = wind_speed_kmh / 3.6
+         [Heuristic conservative cooling adjustment; square-root scaling bounds wind credit to prevent unsafe underestimation of heat stress at high wind speeds].
+    
+    Note: The Australian Bureau of Meteorology's published formula models shade conditions only. 
+    The solar and wind terms are our conservative outdoor operational heuristic extensions.
     
     Args:
         temp_c: Air temperature in Celsius

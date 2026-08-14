@@ -542,7 +542,9 @@ async def compute_wbgt(
     solar_radiation_wm2: float = 500.0
 ) -> str:
     """
-    Computes outdoor Wet Bulb Globe Temperature (WBGT) using the Australian Bureau of Meteorology (ABM) formula.
+    Computes outdoor Wet Bulb Globe Temperature (WBGT) in Celsius.
+    Uses the Australian Bureau of Meteorology (BOM) shade baseline (0.567T + 0.393e + 3.94) 
+    extended with conservative outdoor solar (+0.003*S) and wind (-0.5*sqrt(v)) heuristic adjustments.
     Pure mathematical function - no network calls.
     
     Args:
@@ -556,7 +558,7 @@ async def compute_wbgt(
     return json.dumps({
         "type": "compute_wbgt",
         "wbgt_celsius": wbgt,
-        "formula": "Australian Bureau of Meteorology (ABM) Shade + Solar/Wind Heuristic",
+        "formula": "BOM Shade Baseline (0.567T + 0.393e + 3.94) + Outdoor Solar/Wind Conservative Heuristic Adjustments",
         "inputs": {
             "temperature_celsius": temperature_celsius,
             "humidity_percent": humidity_percent,
