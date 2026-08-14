@@ -1501,3 +1501,39 @@ body {
     background-position: 20px 0;
   }
 }
+
+/* Rich Markdown Table Styling in Chat */
+.table-responsive {
+  width: 100%;
+  overflow-x: auto;
+  margin: 12px 0;
+}
+
+.chat-md-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.chat-md-table th {
+  background: rgba(255, 255, 255, 0.1);
+  padding: 8px 12px;
+  text-align: left;
+  font-weight: 600;
+  color: #f8fafc;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.15);
+}
+
+.chat-md-table td {
+  padding: 8px 12px;
+  color: #cbd5e1;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.chat-md-table tr:last-child td {
+  border-bottom: none;
+}

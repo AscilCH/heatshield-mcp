@@ -875,19 +875,39 @@ function App() {
   const formatContent = (text) => {
     if (!text) return null;
     
-    // Fallback for regular chat messages (like symptom triage output)
     const sections = text.split(/(?=###? )/);
     return sections.map((section, idx) => {
       if (section.trim() === '#' || section.trim() === '##' || section.trim() === '') return null;
       
       const processMarkdown = (str) => {
-          const rawHtml = str
+          const tableRegex = /(\|.+?\|\n\|[-:\s|]+\|\n(?:\|.+?\|\n?)+)/g;
+          let html = str.replace(tableRegex, (match) => {
+              const rows = match.trim().split('\n').map(r => r.trim());
+              if (rows.length < 3) return match;
+              const headerCells = rows[0].split('|').slice(1, -1).map(c => c.trim());
+              const bodyRows = rows.slice(2);
+              
+              let tableHtml = '<div class="table-responsive"><table class="chat-md-table"><thead><tr>';
+              headerCells.forEach(hc => { tableHtml += `<th>${hc}</th>`; });
+              tableHtml += '</tr></thead><tbody>';
+              
+              bodyRows.forEach(row => {
+                  const cells = row.split('|').slice(1, -1).map(c => c.trim());
+                  tableHtml += '<tr>';
+                  cells.forEach(cell => { tableHtml += `<td>${cell}</td>`; });
+                  tableHtml += '</tr>';
+              });
+              tableHtml += '</tbody></table></div>';
+              return tableHtml;
+          });
+
+          html = html
             .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
             .replace(/(?<!\*)\*(?!\*)(.*?)\*/g, '<em>$1</em>')
             .replace(/\n\*/g, '<br/> ')
             .replace(/\n-/g, '<br/> ')
             .replace(/\n/g, '<br/>');
-          return DOMPurify.sanitize(rawHtml);
+          return DOMPurify.sanitize(html);
       };
       
       if (!section.startsWith('#')) {
