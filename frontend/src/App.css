@@ -1246,7 +1246,7 @@ body {
 /* Map Overlays */
 .map-legend {
   position: absolute;
-  bottom: 24px;
+  top: 24px;
   left: 440px;
   background: rgba(38, 32, 29, 0.85);
   backdrop-filter: blur(12px);

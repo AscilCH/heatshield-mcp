@@ -500,7 +500,7 @@ async def chat_endpoint(req: ChatRequest):
                                         return await session.call_tool("find_cooling_spots", args)
                                 return None
                             
-                            mcp_result = await asyncio.wait_for(_execute(), timeout=35.0)
+                            mcp_result = await asyncio.wait_for(_execute(), timeout=60.0)
                             if mcp_result:
                                 tool_out = "\n".join([c.text for c in mcp_result.content if c.type == "text"])
                                 try:
