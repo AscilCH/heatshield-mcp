@@ -425,8 +425,8 @@ async def chat_endpoint(req: ChatRequest):
         
         loop_count = 0
         tool_results_text = ""
-        # 2. Agentic Boundary: Limit tool calls to prevent infinite loops
-        while msg.tool_calls and loop_count < 4:
+        # 2. Agentic Boundary: Limit tool calls to prevent infinite loops (allow up to 8 iterations for multi-city workflows)
+        while msg.tool_calls and loop_count < 8:
             loop_count += 1
             for tool_call in msg.tool_calls:
                 tool_name = tool_call.function.name
