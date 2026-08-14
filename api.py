@@ -1,3 +1,9 @@
+import sys
+if hasattr(sys.stdout, "reconfigure"):
+    sys.stdout.reconfigure(encoding="utf-8", errors="replace")
+if hasattr(sys.stderr, "reconfigure"):
+    sys.stderr.reconfigure(encoding="utf-8", errors="replace")
+
 import asyncio
 import os
 import json
@@ -394,7 +400,7 @@ async def chat_endpoint(req: ChatRequest):
     messages.extend(req.history)
     messages.append({"role": "user", "content": req.message})
     
-    print(f"\n{'='*50}\n[UC TRACE] 👤 User Message: '{req.message}'\n[UC TRACE] 📍 Device Coordinates: Lat {req.latitude}, Lon {req.longitude}\n{'='*50}")
+    print(f"\n{'='*50}\n[UC TRACE] User Message: '{req.message}'\n[UC TRACE] Device Coordinates: Lat {req.latitude}, Lon {req.longitude}\n{'='*50}")
     
     async def event_generator():
         # Meta Llama Prompt-Guard Pre-Flight Check
