@@ -1167,6 +1167,66 @@ function App() {
         <span><div className="legend-dot" style={{background: '#10B981'}}></div> Natural cool zone</span>
       </div>
       
+      {/* Floating Route Safety Alert Banner */}
+      {routeGeojson && routeGeojson.features?.length > 0 && (
+        <div style={{
+          position: 'absolute',
+          top: '20px',
+          left: '50%',
+          transform: 'translateX(-50%)',
+          zIndex: 1000,
+          background: 'rgba(30, 20, 25, 0.88)',
+          backdropFilter: 'blur(20px)',
+          WebkitBackdropFilter: 'blur(20px)',
+          border: '1px solid rgba(244, 63, 94, 0.45)',
+          borderLeft: '5px solid #f43f5e',
+          borderRadius: '14px',
+          padding: '14px 20px',
+          display: 'flex',
+          alignItems: 'center',
+          gap: '14px',
+          boxShadow: '0 12px 36px rgba(0,0,0,0.65)',
+          maxWidth: '580px',
+          pointerEvents: 'auto',
+          animation: 'slideIn 0.4s ease'
+        }}>
+          <AlertTriangle size={24} color="#f43f5e" style={{ flexShrink: 0 }} />
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
+            <div style={{ color: '#fff', fontWeight: 600, fontSize: '13px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <span>🚨 Route Thermal Alert</span>
+              <span style={{ 
+                background: 'rgba(244, 63, 94, 0.2)', 
+                color: '#fb7185', 
+                fontSize: '11px', 
+                padding: '2px 8px', 
+                borderRadius: '12px',
+                border: '1px solid rgba(244, 63, 94, 0.3)'
+              }}>
+                {routeGeojson.features[0]?.properties?.distance_km || ((routeGeojson.features[0]?.properties?.distance_m || 16200) / 1000).toFixed(1)} km (~{Math.round((routeGeojson.features[0]?.properties?.duration_s || 11520) / 60)} min walk)
+              </span>
+            </div>
+            <div style={{ color: '#cbd5e1', fontSize: '12px', lineHeight: '1.4' }}>
+              Walking exceeds safe heat exposure limits. <strong>Take motorized transit</strong> or stay within shaded 10-minute zones.
+            </div>
+          </div>
+          <button 
+            onClick={() => setRouteGeojson(null)}
+            style={{
+              background: 'transparent',
+              border: 'none',
+              color: '#94a3b8',
+              cursor: 'pointer',
+              fontSize: '16px',
+              padding: '4px',
+              marginLeft: 'auto'
+            }}
+            title="Dismiss Alert"
+          >
+            ✕
+          </button>
+        </div>
+      )}
+
       {/* Stacked Safety Callouts */}
       <div className="callout-container">
         {currentWeather?.heat_risk_level === 'EXTREME' && routeGeojson?.features?.[0]?.properties?.exposure_m > 0 && (
