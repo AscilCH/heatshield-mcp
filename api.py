@@ -370,6 +370,10 @@ async def chat_endpoint(req: ChatRequest):
         "4. If a location name is ambiguous, geocode the best candidate or ask for clarification while executing the known legs. "
         "OCCUPATIONAL SAFETY: When asked about safe work conditions or work/rest cycles, gather full context (location, shift hours, workload) and call `get_occupational_heat_guidance` to calculate official NIOSH schedules. "
         "MEDICAL TRIAGE: When symptoms are described, call `query_emergency_protocols` to retrieve official CDC/NIOSH triage guidelines (e.g. distinguishing heat exhaustion from life-threatening heat stroke). "
+        "DATA, COMPUTE & CANVAS COMPOSITION: For complex, comparative, or freeform analysis: "
+        "1. DATA: Fetch real environmental data using data tools (`get_weather_and_heat_risk`, `get_air_quality_forecast`, `geocode_location`). "
+        "2. COMPUTE: NEVER do numerical math or estimate thresholds inline. ALWAYS call deterministic compute tools (`compute_wbgt`, `compute_work_rest_cycle`, `compute_heat_risk`). "
+        "3. CANVAS: Render dynamic UI primitives using `open_comparison_view` for matrices, `draw_map_layer` for custom geometries, and `set_camera_view` for camera navigation. "
         "CRITICAL UI INSTRUCTION: When you call tools that update the UI (maps, charts, work/rest cards), YOU MUST ALSO WRITE A COMPREHENSIVE TEXT RESPONSE explaining your findings, highlighting risk levels, and summarizing the action plan."
     )
     
