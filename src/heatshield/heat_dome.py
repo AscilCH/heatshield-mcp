@@ -117,21 +117,11 @@ async def get_heat_dome_footprint(latitude: float, longitude: float) -> str:
         })
         
     mp = MultiPoint(valid_points)
-    try:
-        # Generate a tight bounding polygon around the grid points
-        hull = shapely.concave_hull(mp, ratio=0.5) 
-        # If concave hull is broken (e.g. lines), fallback to convex
-        if hull.geom_type not in ['Polygon', 'MultiPolygon']:
-             hull = mp.convex_hull
-    except AttributeError:
-        hull = mp.convex_hull
-        
-    # Apply buffer trick to smooth the jagged grid edges into an organic meteorological contour
-    smoothed_hull = hull.buffer(1.5, resolution=16).buffer(-1.5, resolution=16)
+    hull = mp.convex_hull
+    smoothed_hull = hull.buffer(3.0, resolution=16)
     
-    if smoothed_hull.geom_type not in ['Polygon', 'MultiPolygon']:
-        # If smoothing completely degrades it back to a LineString, fallback to original
-        smoothed_hull = hull
+    if smoothed_hull.is_empty:
+        smoothed_hull = mp.buffer(3.5, resolution=16)
         
     # Format to GeoJSON
     if smoothed_hull.geom_type == 'Polygon':
