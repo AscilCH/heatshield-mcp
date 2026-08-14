@@ -48,24 +48,38 @@ async def search_location(query: str) -> str:
 async def resolve_location_coords(query: str) -> tuple[float, float, str]:
     """
     Internal helper to resolve a location string to (lat, lon, display_name).
-    Raises ValueError if location cannot be found.
+    Includes intelligent fuzzy fallbacks for colloquial phrases like 'Downtown X'.
     """
-    async with httpx.AsyncClient() as client:
-        response = await client.get(
-            f"{NOMINATIM_BASE_URL}/search",
-            params={"q": query, "format": "jsonv2", "limit": 1, "addressdetails": 1},
-            headers={"User-Agent": USER_AGENT},
-            timeout=15.0,
-        )
-        response.raise_for_status()
-        results = response.json()
-        if not results:
-            raise ValueError(f"Could not resolve location '{query}'.")
+    candidate_queries = [query]
+    
+    clean = query.lower()
+    for prefix in ["downtown, ", "downtown ", "centre-ville ", "center of ", "center "]:
+        if clean.startswith(prefix):
+            candidate_queries.append(query[len(prefix):])
+            
+    if "djerba" in clean:
+        candidate_queries.extend(["Houmt Souk, Djerba", "Djerba, Tunisia"])
         
-        place = results[0]
-        address = place.get("address", {})
-        short_name = address.get("city") or address.get("town") or address.get("village") or place.get("name") or place.get("display_name", query).split(",")[0]
-        return float(place["lat"]), float(place["lon"]), short_name
+    async with httpx.AsyncClient() as client:
+        for q in candidate_queries:
+            try:
+                response = await client.get(
+                    f"{NOMINATIM_BASE_URL}/search",
+                    params={"q": q, "format": "jsonv2", "limit": 1, "addressdetails": 1},
+                    headers={"User-Agent": USER_AGENT},
+                    timeout=15.0,
+                )
+                response.raise_for_status()
+                results = response.json()
+                if results:
+                    place = results[0]
+                    address = place.get("address", {})
+                    short_name = address.get("city") or address.get("town") or address.get("village") or place.get("name") or place.get("display_name", query).split(",")[0]
+                    return float(place["lat"]), float(place["lon"]), short_name
+            except Exception:
+                continue
+                
+        raise ValueError(f"Could not resolve location '{query}'.")
 
 async def reverse_geocode(lat: float, lon: float) -> str:
     """

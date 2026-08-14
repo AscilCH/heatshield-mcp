@@ -89,6 +89,8 @@ async def generate_uhi_heatmap(latitude: float, longitude: float, radius: int = 
                 )
                 response.raise_for_status()
                 break
+            except Exception:
+                continue
         else:
             delta = actual_radius / 111320.0
             fallback_features = [
