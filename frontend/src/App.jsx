@@ -1035,7 +1035,12 @@ function App() {
             <GeoJSON 
               key={"iso_" + (isochroneGeojson?.features?.length || 0) + "_" + (isochroneGeojson?.features?.[0]?.geometry?.coordinates?.length || 0)} 
               data={isochroneGeojson} 
-              style={{ color: '#10b981', fillColor: '#10b981', weight: 2, fillOpacity: 0.2 }}
+              style={(feature) => ({
+                color: feature.properties?.color || '#10b981',
+                fillColor: feature.properties?.fillColor || '#10b981',
+                weight: 2,
+                fillOpacity: feature.properties?.fillOpacity ?? 0.35
+              })}
             />
           )}
         </MapContainer>
