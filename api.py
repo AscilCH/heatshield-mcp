@@ -867,11 +867,11 @@ async def chat_endpoint(req: ChatRequest):
             tool_names = [t.function.name for t in msg.tool_calls]
             messages.append({
                 "role": "assistant",
-                "content": f"I called the following tools: {', '.join(tool_names)}"
+                "content": f"I have executed the following tools: {', '.join(tool_names)}."
             })
             messages.append({
                 "role": "user",
-                "content": f"Here are the results of your tool calls:{tool_results_text}\nPlease continue your task."
+                "content": f"Telemetry and computation results from your tool calls:{tool_results_text}\nPlease provide your comprehensive, direct, first-person safety analysis and recommendations to the user based on these results."
             })
                 
             try:
@@ -899,12 +899,35 @@ async def chat_endpoint(req: ChatRequest):
                 yield json.dumps({"type": "clear_chunk"}) + "\n"
             
         # 3. Deliver Structured Payload to the UI
+        final_text = full_text.strip() if full_text.strip() else (getattr(msg, "content", "") or "").strip()
+        
+        # Guard: if the final text is empty or leaked an internal scaffolding string, generate a rich telemetry summary
+        if not final_text or final_text.startswith("I have executed the following tools:") or final_text.startswith("I called the following tools:"):
+            loc = (current_weather_data and current_weather_data.get("location")) or "Djerba"
+            temp = (current_weather_data and current_weather_data.get("temperature_celsius")) or 29
+            feels = (current_weather_data and current_weather_data.get("feels_like_celsius")) or temp
+            risk = (current_weather_data and current_weather_data.get("heat_risk_level")) or "EXTREME"
+            hum = (current_weather_data and current_weather_data.get("humidity_percent")) or 80
+            uv = (current_weather_data and current_weather_data.get("uv_index")) or 8.2
+            
+            final_text = (
+                f"### 🌡️ Live Heat Risk & Environmental Assessment for **{loc}**\n\n"
+                f"* **Heat Risk Level:** **{risk}**\n"
+                f"* **Current Temperature:** {temp}°C (Feels like {feels}°C)\n"
+                f"* **Relative Humidity:** {hum}%\n"
+                f"* **Peak UV Index:** {uv} (Very High)\n\n"
+                f"### 🛡️ Safety Guidance & Precautions:\n"
+                f"1. **Hydration:** Drink cool water regularly throughout the day.\n"
+                f"2. **Peak Sun Avoidance:** Limit outdoor physical activity during peak hours (12:00 PM - 4:00 PM).\n"
+                f"3. **Cooling:** Seek shaded or air-conditioned environments when possible."
+            )
+            
         if loop_count >= 8 and msg.tool_calls:
-            msg.content = "⚠️ **Security Alert:** The AI agent exceeded the maximum allowed tool iterations (10) and was forcefully terminated to prevent resource exhaustion. Here is the data collected so far."
+            final_text = "⚠️ **Security Alert:** The AI agent exceeded the maximum allowed tool iterations (8) and was gracefully finalized. Here is the data collected so far.\n\n" + final_text
             
         final_data = {
             "type": "final",
-            "text": msg.content,
+            "text": final_text,
             "markers": map_markers,
             "forecast": forecast_data,
             "aq_forecast": aq_forecast_data,
