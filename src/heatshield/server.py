@@ -390,6 +390,146 @@ async def broadcast_emergency_alert(severity: str, message: str) -> str:
         "message": message
     })
 
+# ==========================================
+# CANVAS & GENERATIVE UI PRIMITIVES
+# ==========================================
+
+@mcp.tool()
+async def draw_map_layer(
+    layer_id: str,
+    layer_type: str,
+    geojson_data: str,
+    style_color: str = "#ef4444",
+    fill_color: str = "#ef4444",
+    fill_opacity: float = 0.35,
+    stroke_weight: int = 3,
+    label: str = None,
+    popup_html: str = None
+) -> str:
+    """
+    Draw a generic vector layer (polygon, polyline corridor, point markers, or heatmap grid) on the map canvas.
+    Use this to dynamically visualize any spatial computation or area of interest.
+    
+    Args:
+        layer_id: Unique string ID for this canvas layer (e.g. "isochrone_5min", "austin_buffer").
+        layer_type: "polygon", "route", "points", or "heatmap".
+        geojson_data: Valid GeoJSON string representing a Feature or FeatureCollection.
+        style_color: Hex outline color (e.g. "#ef4444", "#2ecf8e", "#f59e0b").
+        fill_color: Hex fill color for polygons.
+        fill_opacity: Opacity from 0.0 to 1.0.
+        stroke_weight: Line border width in pixels.
+        label: Optional layer title or legend name.
+        popup_html: Optional HTML snippet for interactive Leaflet popups.
+    """
+    import json
+    try:
+        parsed_geo = json.loads(geojson_data) if isinstance(geojson_data, str) else geojson_data
+    except Exception:
+        parsed_geo = geojson_data
+        
+    return json.dumps({
+        "type": "canvas_map_layer",
+        "layer_id": layer_id,
+        "layer_type": layer_type,
+        "geojson": parsed_geo,
+        "style": {
+            "color": style_color,
+            "fillColor": fill_color,
+            "fillOpacity": fill_opacity,
+            "weight": stroke_weight
+        },
+        "label": label,
+        "popup_html": popup_html
+    })
+
+@mcp.tool()
+async def open_chart_panel(
+    chart_type: str,
+    title: str,
+    series_json: str,
+    x_key: str = "time",
+    unit: str = "°C"
+) -> str:
+    """
+    Opens a dynamic interactive chart widget on the right dock canvas.
+    Use this to display multi-day trends, WBGT progression, air quality curves, or comparative histograms.
+    
+    Args:
+        chart_type: "line", "area", or "bar".
+        title: Title of the chart widget (e.g. "7-Day WBGT vs Temperature Progression").
+        series_json: JSON string of an array of data point objects (e.g. [{"time": "Mon", "temp": 34, "wbgt": 29}, ...]).
+        x_key: The property key for the horizontal axis (default: "time").
+        unit: Unit symbol for tooltips (e.g. "°C", "µg/m³", "%").
+    """
+    import json
+    try:
+        series_data = json.loads(series_json) if isinstance(series_json, str) else series_json
+    except Exception:
+        series_data = []
+        
+    return json.dumps({
+        "type": "canvas_chart_panel",
+        "chart_type": chart_type,
+        "title": title,
+        "series": series_data,
+        "x_key": x_key,
+        "unit": unit
+    })
+
+@mcp.tool()
+async def open_comparison_view(
+    title: str,
+    columns_json: str,
+    rows_json: str
+) -> str:
+    """
+    Displays a rich side-by-side comparative matrix card on the canvas dock.
+    Use this to present multi-city or multi-scenario climate and safety comparisons.
+    
+    Args:
+        title: Header title for the comparison matrix (e.g. "Thermal Risk Matrix: Austin vs Djerba").
+        columns_json: JSON string array of column names (e.g. ["Metric", "Austin, TX", "Djerba, Tunisia"]).
+        rows_json: JSON string array of row arrays (e.g. [["Temperature", "36.6°C", "28.8°C"], ["Humidity", "42%", "64%"]]).
+    """
+    import json
+    try:
+        columns = json.loads(columns_json) if isinstance(columns_json, str) else columns_json
+    except Exception:
+        columns = []
+    try:
+        rows = json.loads(rows_json) if isinstance(rows_json, str) else rows_json
+    except Exception:
+        rows = []
+        
+    return json.dumps({
+        "type": "canvas_comparison_view",
+        "title": title,
+        "columns": columns,
+        "rows": rows
+    })
+
+@mcp.tool()
+async def set_camera_view(
+    latitude: float,
+    longitude: float,
+    zoom_level: int = 12
+) -> str:
+    """
+    Smoothly flies the map camera to a specific coordinate and zoom level.
+    
+    Args:
+        latitude: Target latitude in decimal degrees.
+        longitude: Target longitude in decimal degrees.
+        zoom_level: Map zoom level from 3 (continental) to 17 (street-level).
+    """
+    import json
+    return json.dumps({
+        "type": "canvas_set_camera",
+        "lat": latitude,
+        "lng": longitude,
+        "zoom": zoom_level
+    })
+
 # HOW MCP COMMUNICATION WORKS:
 # When we call mcp.run(transport="stdio"), the server enters an infinite loop.
 # It listens on stdin for requests from the LLM client, routes them to the 

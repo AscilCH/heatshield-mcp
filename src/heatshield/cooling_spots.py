@@ -75,25 +75,14 @@ async def search_cooling_spots(latitude: float, longitude: float, radius: int = 
                 continue
         
         if not elements:
-            # DEMO FALLBACK: If OSM has no data for this area, generate mock cooling spots
-            # so the demo and routing features always work seamlessly.
-            elements = [
-                {
-                    "lat": latitude + 0.005,
-                    "lon": longitude + 0.005,
-                    "tags": {"name": "Central Library (A/C)", "amenity": "library"}
-                },
-                {
-                    "lat": latitude - 0.003,
-                    "lon": longitude + 0.007,
-                    "tags": {"name": "Public Park & Fountain", "leisure": "park"}
-                },
-                {
-                    "lat": latitude + 0.008,
-                    "lon": longitude - 0.002,
-                    "tags": {"name": "Community Mall", "shop": "mall"}
-                }
-            ]
+            import json
+            return json.dumps({
+                "status": "no_verified_spots",
+                "count": 0,
+                "elements": [],
+                "summary": f"No verified air-conditioned cooling centers, libraries, or shaded public parks found within {actual_radius}m. Prioritize indoor commercial spaces with AC, public facilities, or immediate deep tree canopy shade."
+            }, indent=2)
+            
         results = [f"Cooling Spots within {actual_radius}m (Evaluating True Walking Time from {latitude}, {longitude}):"]
         
         # Limit to top 3 closest by haversine first to avoid OSRM rate limits (1 req/sec max)
@@ -132,6 +121,8 @@ async def search_cooling_spots(latitude: float, longitude: float, radius: int = 
             
         import json
         return json.dumps({
+            "status": "success",
+            "count": len(all_spots),
             "summary": "\n".join(results),
             "elements": [
                 {

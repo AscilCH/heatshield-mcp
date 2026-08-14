@@ -401,7 +401,7 @@ async def chat_endpoint(req: ChatRequest):
             yield json.dumps({"type": "final", "text": block_msg}) + "\n"
             return
             
-        # Track map coordinates for the frontend
+        # Track map coordinates and canvas layers for the frontend
         map_markers = []
         forecast_data = None
         aq_forecast_data = None
@@ -413,6 +413,10 @@ async def chat_endpoint(req: ChatRequest):
         work_rest_guidance = None
         current_weather_data = None
         symptom_triage_ui = False
+        canvas_layers = []
+        canvas_chart_data = None
+        canvas_comparison_data = None
+        canvas_camera = None
         
         # Filter out the individual map tools so the LLM is forced to use the orchestrator
         hidden_tools = ["get_urban_heat_island_heatmap", "generate_walkability_isochrone", "find_cooling_spots"]
@@ -776,20 +780,73 @@ async def chat_endpoint(req: ChatRequest):
                     except:
                         pass
                 
+                if tool_name == "draw_map_layer" and not "error" in tool_output.lower():
+                    try:
+                        c_layer = json.loads(tool_output)
+                        canvas_layers.append(c_layer)
+                    except:
+                        pass
+                        
+                if tool_name == "open_chart_panel" and not "error" in tool_output.lower():
+                    try:
+                        canvas_chart_data = json.loads(tool_output)
+                    except:
+                        pass
+                        
+                if tool_name == "open_comparison_view" and not "error" in tool_output.lower():
+                    try:
+                        canvas_comparison_data = json.loads(tool_output)
+                    except:
+                        pass
+                        
+                if tool_name == "set_camera_view" and not "error" in tool_output.lower():
+                    try:
+                        canvas_camera = json.loads(tool_output)
+                    except:
+                        pass
+                
                 # IMPORTANT: Truncate massive GeoJSON payloads before sending back to LLM to prevent TPM Rate Limits!
                 llm_tool_output = tool_output
                 try:
                     parsed_output = json.loads(tool_output)
                     if 'heatmap_geojson' in parsed_output:
-                        parsed_output['heatmap_geojson'] = "GeoJSON data successfully extracted and sent to frontend."
+                        feats = parsed_output['heatmap_geojson'].get('features', []) if isinstance(parsed_output['heatmap_geojson'], dict) else []
+                        parsed_output['heatmap_geojson'] = {
+                            "status": "rendered_on_canvas",
+                            "features_count": len(feats),
+                            "coverage_radius_m": 2500,
+                            "type": "Urban Heat Island Grid"
+                        }
                     if 'heat_dome_geojson' in parsed_output:
-                        parsed_output['heat_dome_geojson'] = "GeoJSON data successfully extracted and sent to frontend."
+                        feats = parsed_output['heat_dome_geojson'].get('features', []) if isinstance(parsed_output['heat_dome_geojson'], dict) else []
+                        parsed_output['heat_dome_geojson'] = {
+                            "status": "rendered_on_canvas",
+                            "features_count": len(feats),
+                            "geometry": "500hPa Synoptic Blocking Ridge Polygon"
+                        }
                     if 'isochrone_geojson' in parsed_output:
-                        parsed_output['isochrone_geojson'] = "GeoJSON data successfully extracted and sent to frontend."
+                        feats = parsed_output['isochrone_geojson'].get('features', []) if isinstance(parsed_output['isochrone_geojson'], dict) else []
+                        parsed_output['isochrone_geojson'] = {
+                            "status": "rendered_on_canvas",
+                            "concentric_isochrones_count": len(feats),
+                            "walk_risk_profiles": [f.get('properties', {}).get('fillColor') for f in feats]
+                        }
                     if 'route_geojson' in parsed_output:
-                        parsed_output['route_geojson'] = "GeoJSON data successfully extracted and sent to frontend."
-                    if 'elements' in parsed_output and len(str(parsed_output['elements'])) > 1000:
-                        parsed_output['elements'] = "List of cooling spots extracted and sent to frontend UI."
+                        feats = parsed_output['route_geojson'].get('features', []) if isinstance(parsed_output['route_geojson'], dict) else []
+                        parsed_output['route_geojson'] = {
+                            "status": "rendered_on_canvas",
+                            "route_segments_count": len(feats),
+                            "waypoints": len(feats[0].get('geometry', {}).get('coordinates', [])) if feats else 0
+                        }
+                    if 'elements' in parsed_output:
+                        els = parsed_output.get('elements', [])
+                        parsed_output['elements'] = {
+                            "status": "rendered_on_canvas",
+                            "verified_spots_found": len(els),
+                            "nearest_spots": [e.get('tags', {}).get('name', 'Cooling Spot') for e in els[:3]] if els else []
+                        }
+                    if 'geojson' in parsed_output and 'type' in parsed_output and parsed_output['type'] == 'canvas_map_layer':
+                        parsed_output['geojson'] = "Layer geometry successfully mounted to frontend canvas."
                     llm_tool_output = json.dumps(parsed_output)
                 except:
                     pass
@@ -828,9 +885,10 @@ async def chat_endpoint(req: ChatRequest):
                 msg_dict["tool_calls"] = [{"id": t.id, "type": "function", "function": {"name": t.function.name, "arguments": t.function.arguments}} for t in msg.tool_calls]
             
             if msg.tool_calls:
-                tool_results_text = ""
+                yield json.dumps({"type": "clear_chunk"}) + "\n"
             
-        if loop_count >= 10:
+        # 3. Deliver Structured Payload to the UI
+        if loop_count >= 8 and msg.tool_calls:
             msg.content = "⚠️ **Security Alert:** The AI agent exceeded the maximum allowed tool iterations (10) and was forcefully terminated to prevent resource exhaustion. Here is the data collected so far."
             
         final_data = {
@@ -846,7 +904,11 @@ async def chat_endpoint(req: ChatRequest):
             "safety_advice": safety_advice_data,
             "work_rest_guidance": work_rest_guidance,
             "current_weather": current_weather_data,
-            "symptom_triage": symptom_triage_ui
+            "symptom_triage": symptom_triage_ui,
+            "canvas_layers": canvas_layers,
+            "canvas_chart": canvas_chart_data,
+            "canvas_comparison": canvas_comparison_data,
+            "canvas_camera": canvas_camera
         }
         yield json.dumps(final_data) + "\n"
 

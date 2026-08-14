@@ -27,10 +27,19 @@ let DefaultIcon = L.icon({
 L.Marker.prototype.options.icon = DefaultIcon
 
 // Helper component to smoothly move the map when markers change
-function MapController({ markers, routeGeojson, uhiGeojson, isochroneGeojson, heatDomeGeojson }) {
+function MapController({ markers, routeGeojson, uhiGeojson, isochroneGeojson, heatDomeGeojson, canvasCamera, canvasLayers }) {
   const map = useMap()
   
   useEffect(() => {
+    // 0. Top Priority: Explicit Canvas Camera
+    if (canvasCamera && canvasCamera.lat && canvasCamera.lng) {
+      setTimeout(() => {
+        map.invalidateSize();
+        map.flyTo([canvasCamera.lat, canvasCamera.lng], canvasCamera.zoom || 12, { duration: 1.5 });
+      }, 100);
+      return;
+    }
+
     // 1. High Priority: Heat Dome Footprint
     if (heatDomeGeojson && heatDomeGeojson.features && heatDomeGeojson.features.length > 0) {
       try {
@@ -128,7 +137,7 @@ function MapController({ markers, routeGeojson, uhiGeojson, isochroneGeojson, he
         }, 100);
       }
     }
-  }, [markers, routeGeojson, uhiGeojson, isochroneGeojson, heatDomeGeojson, map])
+  }, [markers, routeGeojson, uhiGeojson, isochroneGeojson, heatDomeGeojson, canvasCamera, canvasLayers, map])
 
   return null
 }
@@ -431,6 +440,10 @@ function App() {
   const [isochroneGeojson, setIsochroneGeojson] = useState(null)
   const [safetyAdvice, setSafetyAdvice] = useState(null)
   const [workRestGuidance, setWorkRestGuidance] = useState(null)
+  const [canvasLayers, setCanvasLayers] = useState([])
+  const [canvasChartData, setCanvasChartData] = useState(null)
+  const [canvasComparisonData, setCanvasComparisonData] = useState(null)
+  const [canvasCamera, setCanvasCamera] = useState(null)
   const [userLocation, setUserLocation] = useState(null)
   const [currentAction, setCurrentAction] = useState(null)
   const [wsAlert, setWsAlert] = useState(null)
@@ -586,10 +599,9 @@ function App() {
           throw new Error("Invalid IP geo data");
         }
       } catch (err) {
-        console.error("IP Geolocation fallback failed, using default location:", err);
-        const sfax = { lat: 34.7394361, lng: 10.7604024, name: "Sfax" };
-        setUserLocation(sfax);
-        fetchDefaultMap(sfax.lat, sfax.lng, "Sfax");
+        console.warn("Geolocation & IP fallback failed: Location is unknown.", err);
+        setUserLocation(null);
+        setMarkers([]);
       }
     };
 
@@ -831,6 +843,12 @@ function App() {
                         }
                         
                         if (symptom_triage) setSymptomTriage(true);
+                        if (data.canvas_layers && data.canvas_layers.length > 0) {
+                          setCanvasLayers(prev => [...prev, ...data.canvas_layers]);
+                        }
+                        if (data.canvas_chart) setCanvasChartData(data.canvas_chart);
+                        if (data.canvas_comparison) setCanvasComparisonData(data.canvas_comparison);
+                        if (data.canvas_camera) setCanvasCamera(data.canvas_camera);
                         setCurrentAction(null);
                     }
                 } catch (e) {
@@ -1051,7 +1069,7 @@ function App() {
             url="https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png"
             attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
           />
-          <MapController markers={markers} routeGeojson={routeGeojson} uhiGeojson={uhiGeojson} isochroneGeojson={isochroneGeojson} heatDomeGeojson={heatDomeGeojson} />
+          <MapController markers={markers} routeGeojson={routeGeojson} uhiGeojson={uhiGeojson} isochroneGeojson={isochroneGeojson} heatDomeGeojson={heatDomeGeojson} canvasCamera={canvasCamera} canvasLayers={canvasLayers} />
           <ClusterMarkers markers={markers} createCustomIcon={createCustomIcon} getMarkerColor={getMarkerColor} />
           {heatDomeGeojson && (
             <Pane name="heat-dome-pane" style={{ zIndex: 400 }}>
@@ -1116,6 +1134,29 @@ function App() {
               })}
             />
           )}
+          {/* Generic Dynamic Canvas Vector Layers */}
+          {canvasLayers && canvasLayers.map((layer, lIdx) => {
+            if (!layer.geojson) return null;
+            return (
+              <GeoJSON
+                key={"canvas_layer_" + (layer.layer_id || lIdx) + "_" + JSON.stringify(layer.style || {})}
+                data={layer.geojson}
+                style={(feature) => ({
+                  color: layer.style?.color || '#ef4444',
+                  fillColor: layer.style?.fillColor || '#ef4444',
+                  fillOpacity: layer.style?.fillOpacity !== undefined ? layer.style.fillOpacity : 0.35,
+                  weight: layer.style?.weight || 3
+                })}
+                onEachFeature={(feature, l) => {
+                  if (layer.popup_html) {
+                    l.bindPopup(`<div style="color:#1e293b; font-family:sans-serif; padding:4px;">${DOMPurify.sanitize(layer.popup_html)}</div>`);
+                  } else if (layer.label) {
+                    l.bindPopup(`<div style="color:#1e293b; font-family:sans-serif; padding:4px;"><strong>${DOMPurify.sanitize(layer.label)}</strong></div>`);
+                  }
+                }}
+              />
+            );
+          })}
         </MapContainer>
       
       {/* Map Overlays: Legend & Route Callout */}
@@ -1524,6 +1565,36 @@ function App() {
             {aqForecastData && (
               <div className="forecast-overlay aq-overlay">
                  <AQForecastWidget data={aqForecastData} onClose={() => setAqForecastData(null)} />
+              </div>
+            )}
+            {canvasComparisonData && (
+              <div className="forecast-overlay" style={{ width: '100%' }}>
+                <div className="stat-card" style={{ padding: '16px', background: 'rgba(26, 22, 19, 0.95)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '12px' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
+                    <h4 style={{ margin: 0, fontSize: '14px', color: '#f8fafc' }}>{canvasComparisonData.title || "Comparative Matrix"}</h4>
+                    <button className="close-btn" onClick={() => setCanvasComparisonData(null)} style={{ background: 'transparent', border: 'none', color: '#94a3b8', cursor: 'pointer', fontSize: '14px' }}>✕</button>
+                  </div>
+                  <div className="table-responsive">
+                    <table className="chat-md-table" style={{ margin: 0 }}>
+                      <thead>
+                        <tr>
+                          {canvasComparisonData.columns?.map((col, cIdx) => (
+                            <th key={cIdx}>{col}</th>
+                          ))}
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {canvasComparisonData.rows?.map((row, rIdx) => (
+                          <tr key={rIdx}>
+                            {row.map((cell, cellIdx) => (
+                              <td key={cellIdx}>{cell}</td>
+                            ))}
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
               </div>
             )}
         </div>
