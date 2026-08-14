@@ -195,4 +195,40 @@ sequenceDiagram
     Frontend-->>User: Display answer with citations
 ```
 
+### D. UC4: Medical Triage & Emergency Broadcast Flow
+This diagram maps how the system handles critical health escalations (User says "I don't feel well").
 
+```mermaid
+sequenceDiagram
+    actor User
+    participant Frontend as React UI
+    participant Agent as Gemini LLM
+    participant TriageTool as display_medical_triage_advice
+    participant AlertTool as broadcast_emergency_alert
+    participant WS as WebSocket Server
+
+    User->>Frontend: "I don't feel well"
+    Frontend->>Agent: trigger_symptom_triage_ui()
+    Frontend-->>User: Renders SymptomTriageCard
+    User->>Frontend: Selects "Dizziness or fainting"
+    Frontend->>Agent: "I am experiencing: Dizziness..."
+    
+    rect rgb(30, 41, 59)
+    note right of Agent: 🩺 TRIAGE PHASE
+    Agent->>Agent: Recognizes medical request
+    Agent->>TriageTool: display_medical_triage_advice(severity, steps)
+    TriageTool-->>Frontend: Structured JSON payload
+    Frontend-->>User: Renders High-Visibility .msg-emergency Card
+    end
+
+    User->>Frontend: Clicks "CALL EMERGENCY SERVICES" button
+    Frontend->>Agent: "EMERGENCY: I am calling emergency services!"
+    
+    rect rgb(15, 23, 42)
+    note right of Agent: 🚨 EMERGENCY BROADCAST PHASE
+    Agent->>AlertTool: broadcast_emergency_alert("CRITICAL", "Medical Emergency")
+    AlertTool->>WS: Push payload to all connected clients
+    WS-->>Frontend: Emergency WS Event
+    Frontend-->>User: Flashing Red AlertBanner Overlay
+    end
+```

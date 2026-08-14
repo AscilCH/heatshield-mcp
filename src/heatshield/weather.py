@@ -13,7 +13,7 @@ def calculate_heat_risk(apparent_temp: float, uv_index: float) -> str:
         return "MODERATE"
     return "LOW"
 
-async def get_weather_data(latitude: float, longitude: float) -> str:
+async def get_weather_data(latitude: float, longitude: float, location_name: str = None) -> str:
     """
     Fetch real-time weather, temperature, humidity, and UV index.
     """
@@ -26,7 +26,7 @@ async def get_weather_data(latitude: float, longitude: float) -> str:
                     "latitude": latitude,
                     "longitude": longitude,
                     "current": "temperature_2m,relative_humidity_2m,apparent_temperature,wind_speed_10m,shortwave_radiation",
-                    "hourly": "uv_index",
+                    "hourly": "uv_index,apparent_temperature",
                     "timezone": "auto",
                     "forecast_days": 1
                 },
@@ -50,20 +50,54 @@ async def get_weather_data(latitude: float, longitude: float) -> str:
     # Extract the max UV index for the day to represent the worst-case risk
     hourly = data.get("hourly", {})
     uv_array = hourly.get("uv_index", [])
+    temp_array = hourly.get("apparent_temperature", [])
     max_uv = max((uv for uv in uv_array if uv is not None), default=0.0)
 
     heat_risk = calculate_heat_risk(feels_like, max_uv)
 
+    # Calculate dynamic safe windows based on hourly data
+    def get_block_risk(start_idx, end_idx):
+        if not temp_array or len(temp_array) <= end_idx:
+            return "UNKNOWN"
+        block_temps = temp_array[start_idx:end_idx+1]
+        block_uvs = uv_array[start_idx:end_idx+1]
+        max_t = max((t for t in block_temps if t is not None), default=0.0)
+        max_u = max((u for u in block_uvs if u is not None), default=0.0)
+        return calculate_heat_risk(max_t, max_u)
+
+    def risk_to_status(risk):
+        if risk in ["EXTREME", "HIGH"]: return "Avoid"
+        if risk == "MODERATE": return "Caution"
+        return "Safe"
+
+    safe_windows = {
+        "morning": {
+            "time": "6am-11am",
+            "risk": get_block_risk(6, 11),
+            "status": risk_to_status(get_block_risk(6, 11))
+        },
+        "midday": {
+            "time": "12pm-4pm",
+            "risk": get_block_risk(12, 16),
+            "status": risk_to_status(get_block_risk(12, 16))
+        },
+        "evening": {
+            "time": "5pm-9pm",
+            "risk": get_block_risk(17, 21),
+            "status": risk_to_status(get_block_risk(17, 21))
+        }
+    }
+
     import json
     return json.dumps({
         "type": "current_weather",
-        "latitude": latitude,
-        "longitude": longitude,
+        "location": location_name,
         "temperature_celsius": temp,
         "feels_like_celsius": feels_like,
         "humidity_percent": humidity,
         "wind_speed_kmh": wind_speed,
+        "uv_index": max_uv,
+        "heat_risk_level": heat_risk,
         "solar_radiation_wm2": solar_rad,
-        "max_uv_index_today": max_uv,
-        "heat_risk_level": heat_risk
+        "safe_windows": safe_windows
     })

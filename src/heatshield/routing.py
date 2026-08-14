@@ -1,7 +1,11 @@
 import httpx
 import json
+import asyncio
+import logging
 from shapely.geometry import shape
 from heatshield.spatial_cache import get_cached_heatmap
+
+logger = logging.getLogger(__name__)
 
 # OSRM Public API endpoint for walking (foot)
 OSRM_ROUTE_URL = "http://router.project-osrm.org/route/v1/foot/{lon1},{lat1};{lon2},{lat2}?overview=full&geometries=geojson&alternatives=3"
@@ -11,26 +15,40 @@ async def get_walking_route(start_lat: float, start_lon: float, end_lat: float, 
     Queries the OSRM Public API to calculate a walking route between two points.
     Uses Shapely to intersect alternative routes with cached UHI heatmaps,
     selecting the route that avoids the most 'heat trap' polygons.
+    Includes retry logic to handle OSRM's 1 req/sec public rate limit.
     """
     url = OSRM_ROUTE_URL.format(
         lon1=start_lon, lat1=start_lat,
         lon2=end_lon, lat2=end_lat
     )
     
+    # Retry with exponential backoff to handle OSRM rate limiting
+    max_retries = 3
+    data = None
     async with httpx.AsyncClient() as client:
-        try:
-            response = await client.get(url, timeout=10.0)
-            response.raise_for_status()
-        except Exception as exc:
-            return json.dumps({"error": f"Failed to connect to OSRM API: {str(exc)}"})
-            
-    data = response.json()
+        for attempt in range(max_retries):
+            try:
+                if attempt > 0:
+                    wait = 1.5 * attempt
+                    logger.info(f"OSRM retry {attempt}/{max_retries}, waiting {wait}s...")
+                    await asyncio.sleep(wait)
+                response = await client.get(url, timeout=15.0)
+                if response.status_code == 429:
+                    logger.warning(f"OSRM rate limited (429), retry {attempt+1}/{max_retries}")
+                    continue
+                response.raise_for_status()
+                data = response.json()
+                break
+            except Exception as exc:
+                logger.error(f"OSRM request failed (attempt {attempt+1}): {exc}")
+                if attempt == max_retries - 1:
+                    return json.dumps({"error": f"Failed to connect to OSRM API after {max_retries} attempts: {str(exc)}"})
     
-    if data.get("code") != "Ok" or not data.get("routes"):
+    if not data or data.get("code") != "Ok" or not data.get("routes"):
         return json.dumps({"error": "No walking route found between these points."})
         
-    # Retrieve the cached heatmap from DuckDB
-    cached_uhi = get_cached_heatmap(start_lat, start_lon)
+    # Retrieve the cached heatmap from DuckDB (using 2500m default radius)
+    cached_uhi = get_cached_heatmap(start_lat, start_lon, 2500)
     heat_polygons = []
     if cached_uhi:
         try:
@@ -80,8 +98,8 @@ async def get_walking_route(start_lat: float, start_lon: float, end_lat: float, 
     duration = best_distance / 1.4 # seconds
     
     is_optimized = min_exposure < float('inf') and len(heat_polygons) > 0
-    # Tailwind emerald-500 if optimized, blue-500 otherwise
-    route_color = "#10b981" if is_optimized else "#3b82f6" 
+    # Teal (Risk Cool) if optimized, else Amber or basic blue
+    route_color = "#2ECF8E" if is_optimized else "#FFB020" 
     
     msg = f"Found a Shade-Optimized walking route: {int(best_distance)} meters ({int(duration // 60)} minutes). Heat exposure minimized." if is_optimized else f"Found a walking route: {int(best_distance)} meters ({int(duration // 60)} minutes)."
 
@@ -95,7 +113,8 @@ async def get_walking_route(start_lat: float, start_lon: float, end_lat: float, 
                     "distance_m": best_distance,
                     "duration_s": duration,
                     "color": route_color,
-                    "optimized": is_optimized
+                    "optimized": is_optimized,
+                    "exposure_m": min_exposure
                 }
             }
         ]

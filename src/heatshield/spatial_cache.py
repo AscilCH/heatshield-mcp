@@ -21,13 +21,13 @@ def init_db():
 # Initialize on module load
 init_db()
 
-def _get_cache_key(latitude: float, longitude: float) -> str:
+def _get_cache_key(latitude: float, longitude: float, radius: int) -> str:
     # Round to 2 decimal places to create a ~1.1km x 1.1km spatial caching grid
-    return f"{round(latitude, 2)}_{round(longitude, 2)}"
+    return f"{round(latitude, 2)}_{round(longitude, 2)}_{radius}"
 
-def get_cached_heatmap(latitude: float, longitude: float) -> str:
+def get_cached_heatmap(latitude: float, longitude: float, radius: int) -> str:
     """Returns the cached GeoJSON string if it exists and is less than 30 days old."""
-    cache_key = _get_cache_key(latitude, longitude)
+    cache_key = _get_cache_key(latitude, longitude, radius)
     con = duckdb.connect(CACHE_DB_PATH)
     
     # DuckDB supports INTERVAL math. We only return rows where cached_at is newer than 30 days ago.
@@ -44,9 +44,9 @@ def get_cached_heatmap(latitude: float, longitude: float) -> str:
         return result[0]
     return None
 
-def set_cached_heatmap(latitude: float, longitude: float, geojson_data: dict):
-    """Saves the GeoJSON to the DuckDB cache."""
-    cache_key = _get_cache_key(latitude, longitude)
+def set_cached_heatmap(latitude: float, longitude: float, radius: int, geojson_data: dict):
+    """Saves the GeoJSON response to the DuckDB cache."""
+    cache_key = _get_cache_key(latitude, longitude, radius)
     geojson_str = json.dumps(geojson_data)
     now = datetime.now()
     

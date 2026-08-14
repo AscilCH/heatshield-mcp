@@ -118,9 +118,12 @@ async def build_isochrone_polygon(lat: float, lon: float, max_minutes: int = 15)
         "features": features
     }
     
+    generated_zones = [z[0] for z in time_zones if z[0] <= max_minutes]
+    zones_str = ", ".join([str(z) for z in generated_zones])
+    
     return json.dumps({
         "status": "success",
-        "message": f"Successfully generated a multi-layered walking isochrone map for 5, 10, and 15 minute zones. Tell the user you have highlighted the concentric walk zones on their map.",
+        "message": f"Successfully generated a multi-layered walking isochrone map for {zones_str} minute zones. Tell the user you have highlighted the concentric walk zones on their map.",
         "isochrone_geojson": geojson
     }, indent=2)
 

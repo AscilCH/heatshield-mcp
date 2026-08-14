@@ -9,3 +9,15 @@ frontend/node_modules/
 frontend/dist/
 frontend/.npm/
 .DS_Store
+
+# Database and spatial cache
+*.duckdb
+.chroma_db/
+src/heatshield/.chroma_db/
+src/heatshield/.spatial_cache.duckdb
+
+# Scratch and local test scripts
+check_models.py
+patch*.py
+test_*.py
+tool_output_dump.json

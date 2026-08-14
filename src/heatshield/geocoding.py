@@ -34,11 +34,54 @@ async def search_location(query: str) -> str:
     place = results[0]
     lat = place.get("lat", "N/A")
     lon = place.get("lon", "N/A")
-    display_name = place.get("display_name", "Unknown")
+    address = place.get("address", {})
+    short_name = address.get("city") or address.get("town") or address.get("village") or place.get("name") or place.get("display_name", "Unknown").split(",")[0]
     
-    # We return a formatted string because LLMs parse structured natural language very well.
-    return (
-        f"Location: {display_name}\n"
-        f"Latitude: {lat}\n"
-        f"Longitude: {lon}"
-    )
+    import json
+    return json.dumps({
+        "name": short_name,
+        "latitude": float(lat) if lat != "N/A" else None,
+        "longitude": float(lon) if lon != "N/A" else None,
+        "message": "Geocoded successfully. Use these coordinates for all other tool calls."
+    })
+
+async def resolve_location_coords(query: str) -> tuple[float, float, str]:
+    """
+    Internal helper to resolve a location string to (lat, lon, display_name).
+    Raises ValueError if location cannot be found.
+    """
+    async with httpx.AsyncClient() as client:
+        response = await client.get(
+            f"{NOMINATIM_BASE_URL}/search",
+            params={"q": query, "format": "jsonv2", "limit": 1, "addressdetails": 1},
+            headers={"User-Agent": USER_AGENT},
+            timeout=15.0,
+        )
+        response.raise_for_status()
+        results = response.json()
+        if not results:
+            raise ValueError(f"Could not resolve location '{query}'.")
+        
+        place = results[0]
+        address = place.get("address", {})
+        short_name = address.get("city") or address.get("town") or address.get("village") or place.get("name") or place.get("display_name", query).split(",")[0]
+        return float(place["lat"]), float(place["lon"]), short_name
+
+async def reverse_geocode(lat: float, lon: float) -> str:
+    """
+    Reverse geocodes coordinates to find the city/town name.
+    """
+    async with httpx.AsyncClient() as client:
+        try:
+            response = await client.get(
+                f"{NOMINATIM_BASE_URL}/reverse",
+                params={"lat": lat, "lon": lon, "format": "jsonv2"},
+                headers={"User-Agent": USER_AGENT},
+                timeout=15.0,
+            )
+            response.raise_for_status()
+            place = response.json()
+            address = place.get("address", {})
+            return address.get("city") or address.get("town") or address.get("village") or place.get("name") or "Unknown"
+        except:
+            return "Unknown"

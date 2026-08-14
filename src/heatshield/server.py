@@ -13,7 +13,7 @@ We separate our business logic (like geocoding.py) from the server.py.
 This keeps the server clean and makes the tools testable without the MCP wrapper.
 """
 from mcp.server.mcpserver import MCPServer
-from heatshield import geocoding, weather, air_quality, cooling_spots, safety_advice, forecast, rag, heat_map, routing, web_search, isochrone, occupational
+from heatshield import geocoding, weather, air_quality, cooling_spots, safety_advice, forecast, rag, heat_map, routing, web_search, isochrone, occupational, heat_dome
 
 # Initialize the MCP Server (This is the high-level API, formerly known as FastMCP)
 mcp = MCPServer(
@@ -41,26 +41,46 @@ async def geocode_location(query: str) -> str:
     return await geocoding.search_location(query)
 
 @mcp.tool()
-async def get_weather_and_heat_risk(latitude: float, longitude: float) -> str:
+async def get_weather_and_heat_risk(latitude: float = None, longitude: float = None, location_name: str = None) -> str:
     """
-    Fetch live weather data (temperature, humidity, UV index) and a calculated WHO/CDC heat risk level.
-    Requires latitude and longitude.
+    Fetches real-time weather and calculates the WHO/CDC heat risk level.
     """
-    return await weather.get_weather_data(latitude, longitude)
+    resolved_name = location_name
+    if location_name and (latitude is None or longitude is None):
+        latitude, longitude, resolved_name = await geocoding.resolve_location_coords(location_name)
+    elif not location_name and latitude is not None and longitude is not None:
+        resolved_name = await geocoding.reverse_geocode(latitude, longitude)
+    
+    result = await weather.get_weather_data(latitude, longitude, resolved_name)
+    if resolved_name and "Error" not in result:
+        try:
+            data = json.loads(result)
+            data["geocoded_location_name"] = resolved_name
+            data["geocoded_latitude"] = latitude
+            data["geocoded_longitude"] = longitude
+            result = json.dumps(data)
+        except: pass
+    return result
 
 import json
 @mcp.tool()
-async def get_occupational_heat_guidance(latitude: float, longitude: float, workload_description: str) -> str:
+async def get_occupational_heat_guidance(workload_intensity: str, latitude: float = None, longitude: float = None, location_name: str = None) -> str:
     """
     Calculates Wet Bulb Globe Temperature (WBGT) and fetches NIOSH work/rest cycles.
-    MUST be used whenever a user asks about working outside, occupational safety, 
-    construction, roofing, or any physical labor.
+    MUST be used whenever a user asks for a work schedule or occupational safety advice, 
+    REGARDLESS of whether they are working outside, working indoors from home, doing 
+    construction, or doing light software engineering. ALWAYS calculate it for ANY job.
     
     Args:
+        workload_intensity: Must be exactly 'Light', 'Moderate', or 'Heavy'. The AI must evaluate the user's described labor to choose the correct category.
         latitude: The user's latitude
         longitude: The user's longitude
-        workload_description: Natural language description of the work (e.g. "laying asphalt")
+        location_name: Optional city or location name
     """
+    resolved_name = None
+    if location_name and (latitude is None or longitude is None):
+        latitude, longitude, resolved_name = await geocoding.resolve_location_coords(location_name)
+        
     # 1. Fetch current weather for the location
     weather_data_str = await weather.get_weather_data(latitude, longitude)
     if "Error" in weather_data_str:
@@ -75,43 +95,110 @@ async def get_occupational_heat_guidance(latitude: float, longitude: float, work
     # 2. Calculate WBGT
     wbgt = occupational.calculate_wbgt(temp, hum, wind, solar)
     
-    # 3. Map workload and get NIOSH guidelines
-    workload = occupational.map_workload(workload_description)
-    guidance = occupational.get_niosh_guidance(wbgt, workload)
+    # 3. Get NIOSH guidelines
+    guidance = occupational.get_niosh_guidance(wbgt, workload_intensity)
     
     # Add raw inputs for transparency
     guidance["inputs"] = {
         "temperature_celsius": temp,
         "humidity_percent": hum,
         "wind_speed_kmh": wind,
-        "solar_radiation_wm2": solar
+        "solar_radiation_wm2": solar,
+        "assumed_workload": guidance["workload"]
     }
     
+    if resolved_name:
+        guidance["geocoded_location_name"] = resolved_name
+        guidance["geocoded_latitude"] = latitude
+        guidance["geocoded_longitude"] = longitude
+        
     return json.dumps(guidance)
 
 @mcp.tool()
-async def get_air_quality(latitude: float, longitude: float) -> str:
+async def get_air_quality(latitude: float = None, longitude: float = None, location_name: str = None) -> str:
     """
     Fetch live air quality data (PM2.5, PM10, AQI) to assess respiratory safety during heat waves.
-    Requires latitude and longitude.
     """
-    return await air_quality.get_air_quality_data(latitude, longitude)
+    resolved_name = None
+    if location_name and (latitude is None or longitude is None):
+        latitude, longitude, resolved_name = await geocoding.resolve_location_coords(location_name)
+        
+    result = await air_quality.get_air_quality_data(latitude, longitude)
+    if resolved_name and "Error" not in result:
+        try:
+            data = json.loads(result)
+            data["geocoded_location_name"] = resolved_name
+            data["geocoded_latitude"] = latitude
+            data["geocoded_longitude"] = longitude
+            result = json.dumps(data)
+        except: pass
+    return result
 
 @mcp.tool()
-async def get_air_quality_forecast(latitude: float, longitude: float, days: int = 5) -> str:
+async def get_air_quality_forecast(days: int = 5, latitude: float = None, longitude: float = None, location_name: str = None) -> str:
     """
     Fetches a multi-day predictive air quality forecast (PM10, PM2.5). 
     Use this to warn users about incoming dust, smoke, or pollution events.
     """
-    return await air_quality.get_air_quality_forecast(latitude, longitude, days)
+    resolved_name = None
+    if location_name and (latitude is None or longitude is None):
+        latitude, longitude, resolved_name = await geocoding.resolve_location_coords(location_name)
+        
+    result = await air_quality.get_air_quality_forecast(latitude, longitude, days)
+    if resolved_name and "Error" not in result:
+        try:
+            data = json.loads(result)
+            data["geocoded_location_name"] = resolved_name
+            data["geocoded_latitude"] = latitude
+            data["geocoded_longitude"] = longitude
+            result = json.dumps(data)
+        except: pass
+    return result
 
 @mcp.tool()
-async def find_cooling_spots(latitude: float, longitude: float, radius: int = 5000) -> str:
+async def find_cooling_spots(
+    radius: int = 5000,
+    latitude: float = None,
+    longitude: float = None,
+    location_name: str = None,
+    destination_type: str = "any"
+) -> str:
     """
-    Use spatial analytics to find nearby cooling shelters (parks, pools, libraries, fountains).
-    Requires latitude, longitude, and an optional radius in meters.
+    Finds nearby cooling shelters (parks, pools, libraries, malls, fountains).
     """
-    return await cooling_spots.search_cooling_spots(latitude, longitude, radius)
+    resolved_name = None
+    if location_name and (latitude is None or longitude is None):
+        latitude, longitude, resolved_name = await geocoding.resolve_location_coords(location_name)
+    
+    if latitude is None or longitude is None:
+        return json.dumps({"error": "Cannot determine location."})
+    
+    spots_result = await cooling_spots.search_cooling_spots(latitude, longitude, radius)
+    try:
+        spots_data = json.loads(spots_result)
+    except:
+        return json.dumps({"error": "Failed to search for cooling spots."})
+    
+    elements = spots_data.get("elements", [])
+    if destination_type != "any":
+        filtered = []
+        for el in elements:
+            tags = el.get("tags", {})
+            if destination_type == "park" and tags.get("leisure") == "park": filtered.append(el)
+            elif destination_type == "mall" and tags.get("shop") == "mall": filtered.append(el)
+            elif destination_type == "library" and tags.get("amenity") == "library": filtered.append(el)
+            elif destination_type == "pool" and tags.get("leisure") == "swimming_pool": filtered.append(el)
+        elements = filtered
+
+    if not elements:
+        return json.dumps({"error": "No cooling spots found."})
+        
+    return json.dumps({
+        "elements": elements,
+        "geocoded_location_name": resolved_name,
+        "geocoded_latitude": latitude,
+        "geocoded_longitude": longitude
+    })
 
 @mcp.tool()
 def get_heat_safety_advice(heat_risk_level: str, activity_type: str) -> str:
@@ -125,13 +212,26 @@ def get_heat_safety_advice(heat_risk_level: str, activity_type: str) -> str:
     return safety_advice.get_advice(heat_risk_level, activity_type)
 
 @mcp.tool()
-def get_heatwave_forecast(latitude: float, longitude: float, days: int = 7) -> str:
+async def get_heatwave_forecast(days: int = 7, latitude: float = None, longitude: float = None, location_name: str = None) -> str:
     """
     Fetches a 7-day weather forecast and calculates a Climate Aggravation Risk
     by correlating high temperatures with drought/soil moisture conditions.
     Use this to predict upcoming heatwaves and warn the user.
     """
-    return forecast.get_heatwave_forecast(latitude, longitude, days)
+    resolved_name = None
+    if location_name and (latitude is None or longitude is None):
+        latitude, longitude, resolved_name = await geocoding.resolve_location_coords(location_name)
+        
+    result = forecast.get_heatwave_forecast(latitude, longitude, days)
+    if resolved_name and "Error" not in result:
+        try:
+            data = json.loads(result)
+            data["geocoded_location_name"] = resolved_name
+            data["geocoded_latitude"] = latitude
+            data["geocoded_longitude"] = longitude
+            result = json.dumps(data)
+        except: pass
+    return result
 
 @mcp.tool()
 async def query_emergency_protocols(query: str) -> str:
@@ -142,20 +242,66 @@ async def query_emergency_protocols(query: str) -> str:
     return await rag.query_protocols(query)
 
 @mcp.tool()
-async def get_urban_heat_island_heatmap(latitude: float, longitude: float, radius: int = 400) -> str:
+async def get_urban_heat_island_heatmap(radius: int = 2500, latitude: float = None, longitude: float = None, location_name: str = None) -> str:
     """
     Generates a live spatial GeoJSON heatmap of the Urban Heat Island (UHI) effect.
     Use this when the user wants to visualize heat traps (concrete) versus cooling zones (parks).
     """
-    return await heat_map.generate_uhi_heatmap(latitude, longitude, radius)
+    resolved_name = None
+    if location_name and (latitude is None or longitude is None):
+        latitude, longitude, resolved_name = await geocoding.resolve_location_coords(location_name)
+        
+    result = await heat_map.generate_uhi_heatmap(latitude, longitude, radius)
+    if resolved_name and "Error" not in result:
+        try:
+            data = json.loads(result)
+            data["geocoded_location_name"] = resolved_name
+            data["geocoded_latitude"] = latitude
+            data["geocoded_longitude"] = longitude
+            result = json.dumps(data)
+        except: pass
+    return result
 
 @mcp.tool()
-async def get_walking_route(start_lat: float, start_lon: float, end_lat: float, end_lon: float) -> str:
+async def get_heat_dome_footprint(latitude: float = None, longitude: float = None, location_name: str = None) -> str:
+    """
+    Generates a macro-scale (2000km x 2000km) GeoJSON polygon of the Heat Dome (500hPa Blocking High) footprint.
+    Use this ONLY when the user asks about massive heat domes, blocking highs, or canicule boundaries.
+    """
+    resolved_name = None
+    if location_name and (latitude is None or longitude is None):
+        latitude, longitude, resolved_name = await geocoding.resolve_location_coords(location_name)
+        
+    result = await heat_dome.get_heat_dome_footprint(latitude, longitude)
+    if resolved_name and "Error" not in result:
+        try:
+            data = json.loads(result)
+            data["geocoded_location_name"] = resolved_name
+            data["geocoded_latitude"] = latitude
+            data["geocoded_longitude"] = longitude
+            result = json.dumps(data)
+        except: pass
+    return result
+
+@mcp.tool()
+async def get_walking_route(start_lat: float = None, start_lon: float = None, end_lat: float = None, end_lon: float = None, start_location_name: str = None, end_location_name: str = None) -> str:
     """
     Calculates a precise walking route between two coordinates.
-    Use this when the user asks for directions or a route to a specific cooling spot.
+    Use this ONLY when the user EXPLICITLY asks for directions or a route to a specific cooling spot.
+    DO NOT use this to just 'connect' multiple cooling spots together.
+    If you don't know the exact coordinates of the destination, use end_location_name.
     """
+    if start_location_name and (start_lat is None or start_lon is None):
+        start_lat, start_lon, _ = await geocoding.resolve_location_coords(start_location_name)
+    if end_location_name and (end_lat is None or end_lon is None):
+        end_lat, end_lon, _ = await geocoding.resolve_location_coords(end_location_name)
+        
+    if None in [start_lat, start_lon, end_lat, end_lon]:
+        return json.dumps({"error": "Missing coordinates for walking route. Please provide valid start and end points."})
+        
     return await routing.get_walking_route(start_lat, start_lon, end_lat, end_lon)
+
+
 
 @mcp.tool()
 async def ingest_emergency_document_url(url: str) -> str:
@@ -175,12 +321,25 @@ async def search_web_for_pdfs(query: str) -> str:
     return await web_search.search_web_for_pdfs(query)
 
 @mcp.tool()
-async def generate_walkability_isochrone(latitude: float, longitude: float, minutes: int = 15) -> str:
+async def generate_walkability_isochrone(minutes: int = 15, latitude: float = None, longitude: float = None, location_name: str = None) -> str:
     """
     Generates a walking isochrone (reachable area polygon) around the user's coordinates.
     Use this when the user asks how far they can walk safely, or for a safe zone map.
     """
-    return await isochrone.generate_walkability_isochrone(latitude, longitude, minutes)
+    resolved_name = None
+    if location_name and (latitude is None or longitude is None):
+        latitude, longitude, resolved_name = await geocoding.resolve_location_coords(location_name)
+        
+    result = await isochrone.generate_walkability_isochrone(latitude, longitude, minutes)
+    if resolved_name and "Error" not in result:
+        try:
+            data = json.loads(result)
+            data["geocoded_location_name"] = resolved_name
+            data["geocoded_latitude"] = latitude
+            data["geocoded_longitude"] = longitude
+            result = json.dumps(data)
+        except: pass
+    return result
 
 @mcp.tool()
 def trigger_symptom_triage_ui() -> str:
@@ -191,6 +350,28 @@ def trigger_symptom_triage_ui() -> str:
     """
     import json
     return json.dumps({"type": "symptom_triage_ui"})
+
+@mcp.tool()
+async def display_medical_triage_advice(severity: str, title: str, steps: str, requires_emergency: bool) -> str:
+    """
+    Outputs structured medical triage advice to the UI as a high-visibility emergency card.
+    Use this AFTER you query the emergency protocols via RAG to provide the user with clear first-aid steps.
+    Do NOT output raw prose for medical advice. ALWAYS use this tool.
+    
+    Args:
+        severity: "CRITICAL", "WARNING", or "INFO"
+        title: Short title (e.g. "Heat Stroke Warning", "Heat Exhaustion Advice")
+        steps: The first-aid steps or advice formatted as a newline-separated string.
+        requires_emergency: True if the user should call emergency services immediately.
+    """
+    import json
+    return json.dumps({
+        "type": "medical_triage_advice",
+        "severity": severity,
+        "title": title,
+        "steps": steps,
+        "requires_emergency": requires_emergency
+    })
 
 @mcp.tool()
 async def broadcast_emergency_alert(severity: str, message: str) -> str:
