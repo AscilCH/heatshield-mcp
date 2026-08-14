@@ -991,7 +991,7 @@ function App() {
           {heatDomeGeojson && (
             <Pane name="heat-dome-pane" style={{ zIndex: 400 }}>
               <GeoJSON 
-                key={"heatDome" + Date.now()} 
+                key={"heatDome_" + (heatDomeGeojson?.features?.length || 0) + "_" + JSON.stringify(heatDomeGeojson?.features?.[0]?.geometry?.coordinates?.[0]?.[0] || "")} 
                 data={heatDomeGeojson} 
                 style={(feature) => ({
                   color: '#ff1744',
@@ -1009,7 +1009,7 @@ function App() {
           {uhiGeojson && (
             <Pane name="heat-pane" className="heat-pane-blur" style={{ zIndex: 450 }}>
               <GeoJSON 
-                key={"uhi" + Date.now()} 
+                key={"uhi_" + (uhiGeojson?.features?.length || 0) + "_" + JSON.stringify(uhiGeojson?.features?.[0]?.geometry?.coordinates?.[0]?.[0] || "")} 
                 data={uhiGeojson} 
                 style={(feature) => ({
                   color: feature.properties?.isHighway ? feature.properties?.color : (feature.properties?.type === 'heat_trap_low' ? feature.properties?.color : 'transparent'),
@@ -1023,7 +1023,7 @@ function App() {
           {routeGeojson && routeGeojson.features?.[0]?.geometry?.coordinates && (
             <>
               <GeoJSON 
-                key={"route" + Date.now()} 
+                key={"route_" + (routeGeojson?.features?.length || 0) + "_" + (routeGeojson?.features?.[0]?.geometry?.coordinates?.length || 0)} 
                 data={routeGeojson} 
                 style={(feature) => ({ color: feature.properties?.color || '#2ECF8E', weight: 5, fillOpacity: 0 })}
               />
@@ -1033,7 +1033,7 @@ function App() {
           )}
           {isochroneGeojson && (
             <GeoJSON 
-              key={"iso" + Date.now()} 
+              key={"iso_" + (isochroneGeojson?.features?.length || 0) + "_" + (isochroneGeojson?.features?.[0]?.geometry?.coordinates?.length || 0)} 
               data={isochroneGeojson} 
               style={{ color: '#10b981', fillColor: '#10b981', weight: 2, fillOpacity: 0.2 }}
             />
