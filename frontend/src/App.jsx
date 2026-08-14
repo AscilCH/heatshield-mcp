@@ -440,7 +440,82 @@ function App() {
 
   // Request geolocation on mount, with a fallback
   useEffect(() => {
+    const fetchClientWeather = async (lat, lng, fallbackCity) => {
+      try {
+        let cityName = fallbackCity;
+        if (!cityName) {
+          try {
+            const nomRes = await fetch(`https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lng}&format=jsonv2`, {
+              headers: { 'User-Agent': 'heatshield-mcp/0.1.0 (GeoAI Research Project)' }
+            });
+            const nomData = await nomRes.json();
+            const addr = nomData.address || {};
+            cityName = addr.city || addr.town || addr.village || addr.suburb || addr.county || addr.state || nomData.name || "Your Location";
+          } catch(e) {
+            cityName = "Your Location";
+          }
+        }
+
+        const omRes = await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lng}&current=temperature_2m,relative_humidity_2m,apparent_temperature,wind_speed_10m,shortwave_radiation&hourly=uv_index,apparent_temperature&timezone=auto&forecast_days=1`);
+        const omData = await omRes.json();
+        
+        if (omData.current) {
+          const current = omData.current;
+          const hourly = omData.hourly || {};
+          const tempArray = hourly.apparent_temperature || [];
+          const uvArray = hourly.uv_index || [];
+          const maxUv = Math.max(...uvArray.filter(u => u !== null && u !== undefined), 0);
+          
+          const calcRisk = (appTemp, uv) => {
+            if (appTemp >= 39.0 || uv >= 8.0) return "EXTREME";
+            if (appTemp >= 33.0 || uv >= 6.0) return "HIGH";
+            if (appTemp >= 27.0 || uv >= 3.0) return "MODERATE";
+            return "LOW";
+          };
+
+          const getBlockRisk = (startIdx, endIdx) => {
+            if (!tempArray || tempArray.length <= endIdx) return "UNKNOWN";
+            const blockTemps = tempArray.slice(startIdx, endIdx + 1);
+            const blockUvs = uvArray.slice(startIdx, endIdx + 1);
+            const maxT = Math.max(...blockTemps.filter(t => t !== null && t !== undefined), 0);
+            const maxU = Math.max(...blockUvs.filter(u => u !== null && u !== undefined), 0);
+            return calcRisk(maxT, maxU);
+          };
+
+          const riskToStatus = (risk) => {
+            if (risk === "EXTREME" || risk === "HIGH") return "Avoid";
+            if (risk === "MODERATE") return "Caution";
+            return "Safe";
+          };
+
+          const weatherObj = {
+            type: "current_weather",
+            location: cityName,
+            temperature_celsius: current.temperature_2m,
+            feels_like_celsius: current.apparent_temperature,
+            humidity_percent: current.relative_humidity_2m,
+            wind_speed_kmh: current.wind_speed_10m,
+            uv_index: maxUv,
+            heat_risk_level: calcRisk(current.apparent_temperature, maxUv),
+            solar_radiation_wm2: current.shortwave_radiation,
+            safe_windows: {
+              morning: { time: "6am-11am", risk: getBlockRisk(6, 11), status: riskToStatus(getBlockRisk(6, 11)) },
+              midday: { time: "12pm-4pm", risk: getBlockRisk(12, 16), status: riskToStatus(getBlockRisk(12, 16)) },
+              evening: { time: "5pm-9pm", risk: getBlockRisk(17, 21), status: riskToStatus(getBlockRisk(17, 21)) }
+            }
+          };
+
+          setCurrentWeather(weatherObj);
+          setUserLocation({ lat, lng, name: cityName });
+          setMarkers([{ lat, lng, label: `You are here (${cityName})`, type: "user_location" }]);
+        }
+      } catch (err) {
+        console.error("Instant client weather fetch failed:", err);
+      }
+    };
+
     const fetchDefaultMap = (lat, lng, fallbackName) => {
+      fetchClientWeather(lat, lng, fallbackName);
       axios.post(`${API_URL}/api/default-map`, { lat, lng })
         .then(res => {
           if (res.data.current_weather) {
