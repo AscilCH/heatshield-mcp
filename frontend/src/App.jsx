@@ -440,18 +440,19 @@ function App() {
 
   // Request geolocation on mount, with a fallback
   useEffect(() => {
-    const fetchDefaultMap = (lat, lng) => {
+    const fetchDefaultMap = (lat, lng, fallbackName) => {
       axios.post(`${API_URL}/api/default-map`, { lat, lng })
         .then(res => {
-          if (res.data.current_weather) setCurrentWeather(res.data.current_weather);
+          if (res.data.current_weather) {
+            setCurrentWeather(res.data.current_weather);
+            const cityName = res.data.current_weather.location || fallbackName || "Your Location";
+            setUserLocation({ lat, lng, name: cityName });
+          }
           if (res.data.uhi_geojson) setUhiGeojson(res.data.uhi_geojson);
           if (res.data.heat_dome_geojson) setHeatDomeGeojson(res.data.heat_dome_geojson);
           if (res.data.isochrone_geojson) setIsochroneGeojson(res.data.isochrone_geojson);
           if (res.data.markers && res.data.markers.length > 0) {
-             setMarkers(prev => {
-                const nonCooling = prev.filter(m => m.type !== 'cooling_spot');
-                return [...nonCooling, ...res.data.markers];
-             });
+             setMarkers(res.data.markers);
           }
         })
         .catch(err => console.error("Error fetching default map:", err));
@@ -462,18 +463,18 @@ function App() {
         const response = await fetch('https://ipwho.is/');
         const data = await response.json();
         if (data.latitude && data.longitude) {
-          const loc = { lat: data.latitude, lng: data.longitude };
+          const loc = { lat: data.latitude, lng: data.longitude, name: data.city || "Your Area" };
           setUserLocation(loc);
-          setMarkers([{ ...loc, label: "You are here (IP approx)", type: "user_location" }]);
-          fetchDefaultMap(loc.lat, loc.lng);
+          setMarkers([{ ...loc, label: `You are here (${data.city || 'IP'})`, type: "user_location" }]);
+          fetchDefaultMap(loc.lat, loc.lng, data.city);
         } else {
           throw new Error("Invalid IP geo data");
         }
       } catch (err) {
         console.error("IP Geolocation fallback failed, using default location:", err);
-        const sfax = { lat: 34.7394361, lng: 10.7604024 };
+        const sfax = { lat: 34.7394361, lng: 10.7604024, name: "Sfax" };
         setUserLocation(sfax);
-        fetchDefaultMap(sfax.lat, sfax.lng);
+        fetchDefaultMap(sfax.lat, sfax.lng, "Sfax");
       }
     };
 
@@ -607,10 +608,15 @@ function App() {
                     const data = JSON.parse(part);
                     
                     if (data.type === 'chunk') {
-                          setStreamingMessage(prev => prev + data.text);
-                      } else if (data.type === 'trace') {
+                        setStreamingMessage(prev => prev + data.text);
+                    } else if (data.type === 'clear_chunk') {
+                        setStreamingMessage("");
+                        setDisplayedStreamingMessage("");
+                    } else if (data.type === 'trace') {
                         console.log(`%c${data.message}`, 'color: #3b82f6; font-weight: bold;');
                     } else if (data.type === 'tool_call') {
+                        setStreamingMessage("");
+                        setDisplayedStreamingMessage("");
                         // Map the tool name to a user-friendly action string
                         const actionMap = {
                             "geocode_location": "🔍 Geocoding location...",

@@ -413,6 +413,7 @@ async def chat_endpoint(req: ChatRequest):
         msg_dict = {"role": "assistant", "content": getattr(msg, "content", None) or ""}
         if getattr(msg, "tool_calls", None):
             msg_dict["tool_calls"] = [{"id": t.id, "type": "function", "function": {"name": t.function.name, "arguments": t.function.arguments}} for t in msg.tool_calls]
+            yield json.dumps({"type": "clear_chunk"}) + "\n"
         
         loop_count = 0
         tool_results_text = ""
@@ -706,8 +707,7 @@ async def chat_endpoint(req: ChatRequest):
             try:
                 full_text = ""
                 tool_calls = []
-                print("MESSAGES TYPE BEFORE SECOND STREAM:", [type(m) for m in messages])
-                print("MESSAGES BEFORE SECOND STREAM:", messages)
+                yield json.dumps({"type": "clear_chunk"}) + "\n"
                 async for chunk in stream_gemini_response(messages, llm_tools):
                     if chunk["type"] == "chunk":
                         yield json.dumps({"type": "chunk", "text": chunk["text"]}) + "\n"
@@ -753,15 +753,10 @@ async def chat_endpoint(req: ChatRequest):
 @app.post('/api/default-map')
 async def default_map_endpoint(req: dict):
     # Used to populate the SSOT and default map state on load
-    session = app_state.get('session')
-    if not session:
-        raise HTTPException(status_code=500, detail='MCP Server not connected')
-    
     lat = req.get('lat')
     lng = req.get('lng')
     
     if lat is None or lng is None:
-        # If there's absolutely no location (GPS failed, IP failed), return empty map state
         return {
             "current_weather": None,
             "uhi_geojson": None,
@@ -769,8 +764,37 @@ async def default_map_endpoint(req: dict):
             "isochrone_geojson": None,
             "markers": []
         }
+    
+    from src.heatshield import weather, geocoding
+    
+    # 1. Reverse geocode coordinates to find actual city/area name
+    city_name = await geocoding.reverse_geocode(lat, lng)
+    if not city_name or city_name == "Unknown":
+        city_name = "Your Location"
+        
+    # 2. Fetch live real-time weather and WHO heat risk for the coordinates
+    weather_json_str = await weather.get_weather_data(lat, lng, city_name)
+    current_weather = None
+    try:
+        current_weather = json.loads(weather_json_str)
+        if "Error" in weather_json_str or "error" in current_weather:
+            current_weather = None
+        else:
+            current_weather["location"] = city_name
+    except:
+        current_weather = None
+        
     return {
-        'current_weather': None,
+        'current_weather': current_weather,
         'uhi_geojson': None,
-        'markers': []
+        'heat_dome_geojson': None,
+        'isochrone_geojson': None,
+        'markers': [
+            {
+                "lat": lat,
+                "lng": lng,
+                "label": f"You are here ({city_name})",
+                "type": "user_location"
+            }
+        ]
     }
