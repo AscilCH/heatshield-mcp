@@ -105,17 +105,23 @@ function MapController({ markers, routeGeojson, uhiGeojson, isochroneGeojson, he
       const targetMarkers = nonUserMarkers.length > 0 ? nonUserMarkers : markers;
       
       let bounds = new L.LatLngBounds();
-      targetMarkers.forEach(m => {
-        if (m.lat && m.lng) {
-          bounds.extend([m.lat, m.lng]);
+      let maxDist = 0;
+      for (let i = 0; i < targetMarkers.length; i++) {
+        for (let j = i + 1; j < targetMarkers.length; j++) {
+          const d = Math.hypot(targetMarkers[i].lat - targetMarkers[j].lat, targetMarkers[i].lng - targetMarkers[j].lng);
+          if (d > maxDist) maxDist = d;
         }
-      });
+        if (targetMarkers[i].lat && targetMarkers[i].lng) {
+          bounds.extend([targetMarkers[i].lat, targetMarkers[i].lng]);
+        }
+      }
       
       if (bounds.isValid()) {
         setTimeout(() => {
           map.invalidateSize();
-          if (targetMarkers.length === 1) {
-            map.flyTo([targetMarkers[0].lat, targetMarkers[0].lng], 13, { duration: 1.5 });
+          if (maxDist > 15 || targetMarkers.length === 1) {
+            const primary = targetMarkers[targetMarkers.length - 1];
+            map.flyTo([primary.lat, primary.lng], 11, { duration: 1.5 });
           } else {
             map.flyToBounds(bounds, { padding: [50, 50], maxZoom: 14, duration: 1.5 });
           }

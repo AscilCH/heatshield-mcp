@@ -1,10 +1,13 @@
 import httpx
+import asyncio
+import time
+import json
 
 WEATHER_API_URL = "https://api.open-meteo.com/v1/forecast"
+_WEATHER_CACHE = {}
 
 def calculate_heat_risk(apparent_temp: float, uv_index: float) -> str:
     """Calculate heat risk based on WHO/CDC guidelines."""
-    # Simplified heat index logic for the prototype
     if apparent_temp >= 39.0 or uv_index >= 8.0:
         return "EXTREME"
     elif apparent_temp >= 33.0 or uv_index >= 6.0:
@@ -15,30 +18,43 @@ def calculate_heat_risk(apparent_temp: float, uv_index: float) -> str:
 
 async def get_weather_data(latitude: float, longitude: float, location_name: str = None) -> str:
     """
-    Fetch real-time weather, temperature, humidity, and UV index.
+    Fetch real-time weather, temperature, humidity, and UV index with caching and 429 retry.
     """
-    async with httpx.AsyncClient() as client:
-        try:
-            # We request current weather conditions, plus hourly UV index
-            response = await client.get(
-                WEATHER_API_URL,
-                params={
-                    "latitude": latitude,
-                    "longitude": longitude,
-                    "current": "temperature_2m,relative_humidity_2m,apparent_temperature,wind_speed_10m,shortwave_radiation",
-                    "hourly": "uv_index,apparent_temperature",
-                    "timezone": "auto",
-                    "forecast_days": 1
-                },
-                timeout=15.0,
-            )
-            response.raise_for_status()
-        except httpx.RequestError as exc:
-            return f"Error: Failed to connect to Open-Meteo Weather API: {exc}"
-        except httpx.HTTPStatusError as exc:
-            return f"Error: Open-Meteo Weather API returned status {exc.response.status_code}"
+    cache_key = f"{round(latitude, 2)}_{round(longitude, 2)}"
+    now = time.time()
+    if cache_key in _WEATHER_CACHE:
+        cached_time, cached_val = _WEATHER_CACHE[cache_key]
+        if now - cached_time < 300: # 5 min cache
+            return cached_val
 
-    data = response.json()
+    data = None
+    async with httpx.AsyncClient() as client:
+        for attempt in range(3):
+            try:
+                response = await client.get(
+                    WEATHER_API_URL,
+                    params={
+                        "latitude": latitude,
+                        "longitude": longitude,
+                        "current": "temperature_2m,relative_humidity_2m,apparent_temperature,wind_speed_10m,shortwave_radiation",
+                        "hourly": "uv_index,apparent_temperature",
+                        "timezone": "auto",
+                        "forecast_days": 1
+                    },
+                    timeout=15.0,
+                )
+                if response.status_code == 429:
+                    await asyncio.sleep(1.5 * (attempt + 1))
+                    continue
+                response.raise_for_status()
+                data = response.json()
+                break
+            except Exception as exc:
+                if attempt == 2:
+                    if cache_key in _WEATHER_CACHE:
+                        return _WEATHER_CACHE[cache_key][1]
+                    return f"Error: Failed to connect to Open-Meteo Weather API: {exc}"
+                await asyncio.sleep(1.0)
     
     current = data.get("current", {})
     temp = current.get("temperature_2m", 0.0)
@@ -88,8 +104,7 @@ async def get_weather_data(latitude: float, longitude: float, location_name: str
         }
     }
 
-    import json
-    return json.dumps({
+    result_json = json.dumps({
         "type": "current_weather",
         "location": location_name,
         "temperature_celsius": temp,
@@ -101,3 +116,5 @@ async def get_weather_data(latitude: float, longitude: float, location_name: str
         "solar_radiation_wm2": solar_rad,
         "safe_windows": safe_windows
     })
+    _WEATHER_CACHE[cache_key] = (now, result_json)
+    return result_json
