@@ -670,13 +670,32 @@ async def chat_endpoint(req: ChatRequest):
                     except:
                         pass
                         
-                if tool_name == "get_air_quality_forecast" and not "error" in tool_output.lower():
-                    try:
-                        aq_res = json.loads(tool_output)
-                        if 'aq_forecast' in aq_res:
-                            aq_forecast_data = aq_res['aq_forecast']
-                    except:
-                        pass
+                if tool_name in ["get_air_quality_forecast", "get_air_quality"] and not "error" in tool_output.lower():
+                    if tool_name == "get_air_quality":
+                        try:
+                            lat = tool_args.get('latitude')
+                            lon = tool_args.get('longitude')
+                            loc = tool_args.get('location_name')
+                            aq_args = {}
+                            if lat is not None and lon is not None:
+                                aq_args = {"latitude": lat, "longitude": lon}
+                            elif loc:
+                                aq_args = {"location_name": loc}
+                            if aq_args:
+                                mcp_aq_res = await session.call_tool("get_air_quality_forecast", aq_args)
+                                aq_tool_out = "\n".join([c.text for c in mcp_aq_res.content if c.type == "text"])
+                                aq_res = json.loads(aq_tool_out)
+                                if 'aq_forecast' in aq_res:
+                                    aq_forecast_data = aq_res['aq_forecast']
+                        except Exception as e:
+                            print(f"[AQ ERROR] Failed to auto-fetch AQ forecast curve: {e}")
+                    else:
+                        try:
+                            aq_res = json.loads(tool_output)
+                            if 'aq_forecast' in aq_res:
+                                aq_forecast_data = aq_res['aq_forecast']
+                        except:
+                            pass
                         
                 if tool_name == "get_urban_heat_island_heatmap" and not "error" in tool_output.lower():
                     try:
@@ -705,7 +724,10 @@ async def chat_endpoint(req: ChatRequest):
                     try:
                         res_obj = json.loads(tool_output)
                         if 'route_geojson' in res_obj:
-                            route_geojson = res_obj['route_geojson']
+                            if route_geojson is None:
+                                route_geojson = res_obj['route_geojson']
+                            else:
+                                route_geojson['features'].extend(res_obj['route_geojson'].get('features', []))
                     except:
                         pass
 

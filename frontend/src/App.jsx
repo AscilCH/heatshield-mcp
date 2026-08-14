@@ -1020,15 +1020,23 @@ function App() {
               />
             </Pane>
           )}
-          {routeGeojson && routeGeojson.features?.[0]?.geometry?.coordinates && (
+          {routeGeojson && routeGeojson.features?.length > 0 && (
             <>
               <GeoJSON 
                 key={"route_" + (routeGeojson?.features?.length || 0) + "_" + (routeGeojson?.features?.[0]?.geometry?.coordinates?.length || 0)} 
                 data={routeGeojson} 
                 style={(feature) => ({ color: feature.properties?.color || '#2ECF8E', weight: 5, fillOpacity: 0 })}
               />
-              <Marker position={[routeGeojson.features[0].geometry.coordinates[0][1], routeGeojson.features[0].geometry.coordinates[0][0]]} icon={createCustomIcon('#2ECF8E')} />
-              <Marker position={[routeGeojson.features[0].geometry.coordinates[routeGeojson.features[0].geometry.coordinates.length - 1][1], routeGeojson.features[0].geometry.coordinates[routeGeojson.features[0].geometry.coordinates.length - 1][0]]} icon={createCustomIcon('#2ECF8E')} />
+              {routeGeojson.features.map((feat, fIdx) => {
+                const coords = feat?.geometry?.coordinates;
+                if (!coords || coords.length < 2) return null;
+                return (
+                  <React.Fragment key={"route_markers_" + fIdx}>
+                    <Marker position={[coords[0][1], coords[0][0]]} icon={createCustomIcon('#2ECF8E')} />
+                    <Marker position={[coords[coords.length - 1][1], coords[coords.length - 1][0]]} icon={createCustomIcon('#2ECF8E')} />
+                  </React.Fragment>
+                );
+              })}
             </>
           )}
           {isochroneGeojson && (
