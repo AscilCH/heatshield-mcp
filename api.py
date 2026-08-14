@@ -310,6 +310,38 @@ async def sms_reply(req: dict):
             return {"status": "success", "message": "Contact updated to Alert"}
     return {"status": "error", "message": "Contact not found"}
 
+async def check_prompt_guard(message: str) -> dict:
+    """
+    Evaluates input message against meta-llama/Prompt-Guard-86M via Hugging Face Inference API.
+    Detects Prompt Injections (LABEL_1) and Jailbreak attempts (LABEL_2).
+    """
+    hf_token = os.environ.get("HF_TOKEN") or os.environ.get("HUGGINGFACE_API_KEY")
+    if not hf_token:
+        return {"is_safe": True}
+        
+    url = "https://api-inference.huggingface.co/models/meta-llama/Prompt-Guard-86M"
+    headers = {"Authorization": f"Bearer {hf_token}"}
+    payload = {"inputs": message}
+    
+    try:
+        async with httpx.AsyncClient() as client:
+            response = await client.post(url, headers=headers, json=payload, timeout=5.0)
+            if response.status_code == 200:
+                data = response.json()
+                if isinstance(data, list) and len(data) > 0:
+                    scores = data[0] if isinstance(data[0], list) else data
+                    for item in scores:
+                        label = item.get("label", "").upper()
+                        score = item.get("score", 0.0)
+                        if label in ["LABEL_1", "INJECTION"] and score > 0.70:
+                            return {"is_safe": False, "reason": "Prompt Injection", "score": score}
+                        if label in ["LABEL_2", "JAILBREAK"] and score > 0.70:
+                            return {"is_safe": False, "reason": "Jailbreak Attempt", "score": score}
+    except Exception as e:
+        print(f"[PROMPT GUARD] HF Inference API check skipped: {e}")
+        
+    return {"is_safe": True}
+
 chat_rate_limiter = RateLimiter(requests_per_minute=30)
 
 @app.post("/api/chat", dependencies=[Depends(verify_api_key), Depends(chat_rate_limiter)])
@@ -360,6 +392,14 @@ async def chat_endpoint(req: ChatRequest):
     print(f"\n{'='*50}\n[UC TRACE] 👤 User Message: '{req.message}'\n[UC TRACE] 📍 Device Coordinates: Lat {req.latitude}, Lon {req.longitude}\n{'='*50}")
     
     async def event_generator():
+        # Meta Llama Prompt-Guard Pre-Flight Check
+        guard_result = await check_prompt_guard(req.message)
+        if not guard_result.get("is_safe", True):
+            block_msg = f"🛡️ **Meta Llama Prompt-Guard Security Alert:** {guard_result.get('reason', 'Malicious content')} detected (Confidence: {int(guard_result.get('score', 0.9) * 100)}%). This request was intercepted and blocked for safety."
+            yield json.dumps({"type": "chunk", "text": block_msg}) + "\n"
+            yield json.dumps({"type": "final", "text": block_msg}) + "\n"
+            return
+            
         # Track map coordinates for the frontend
         map_markers = []
         forecast_data = None
@@ -480,9 +520,14 @@ async def chat_endpoint(req: ChatRequest):
                     
                     async def run_task(task):
                         op = task.get("operation")
-                        city = task.get("city")
-                        lat = task.get("latitude")
-                        lon = task.get("longitude")
+                        city = task.get("city") or task.get("location") or task.get("location_name") or task.get("name") or task.get("place")
+                        lat = task.get("latitude") or task.get("lat")
+                        lon = task.get("longitude") or task.get("lon") or task.get("lng")
+                        
+                        if not city and lat is None and req.latitude is not None:
+                            lat = req.latitude
+                            lon = req.longitude
+                            
                         task_id = f"{city or 'local'}-{op}"
                         
                         try:
