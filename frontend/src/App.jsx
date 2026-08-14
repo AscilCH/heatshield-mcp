@@ -880,28 +880,67 @@ function App() {
       if (section.trim() === '#' || section.trim() === '##' || section.trim() === '') return null;
       
       const processMarkdown = (str) => {
-          const tableRegex = /(\|.+?\|\n\|[-:\s|]+\|\n(?:\|.+?\|\n?)+)/g;
-          let html = str.replace(tableRegex, (match) => {
-              const rows = match.trim().split('\n').map(r => r.trim());
-              if (rows.length < 3) return match;
-              const headerCells = rows[0].split('|').slice(1, -1).map(c => c.trim());
-              const bodyRows = rows.slice(2);
-              
-              let tableHtml = '<div class="table-responsive"><table class="chat-md-table"><thead><tr>';
-              headerCells.forEach(hc => { tableHtml += `<th>${hc}</th>`; });
-              tableHtml += '</tr></thead><tbody>';
-              
-              bodyRows.forEach(row => {
-                  const cells = row.split('|').slice(1, -1).map(c => c.trim());
-                  tableHtml += '<tr>';
-                  cells.forEach(cell => { tableHtml += `<td>${cell}</td>`; });
-                  tableHtml += '</tr>';
-              });
-              tableHtml += '</tbody></table></div>';
-              return tableHtml;
-          });
+          const lines = str.split('\n');
+          let inTable = false;
+          let tableHeaders = [];
+          let tableRows = [];
+          let outputLines = [];
 
-          html = html
+          const renderCurrentTable = () => {
+              if (tableHeaders.length === 0 && tableRows.length === 0) return '';
+              const headers = tableHeaders.length > 0 ? tableHeaders : (tableRows.length > 0 ? tableRows.shift() : []);
+              let tHtml = '<div class="table-responsive"><table class="chat-md-table"><thead><tr>';
+              headers.forEach(h => { tHtml += `<th>${h}</th>`; });
+              tHtml += '</tr></thead><tbody>';
+              tableRows.forEach(row => {
+                  tHtml += '<tr>';
+                  for (let cIdx = 0; cIdx < headers.length; cIdx++) {
+                      tHtml += `<td>${row[cIdx] !== undefined ? row[cIdx] : ''}</td>`;
+                  }
+                  tHtml += '</tr>';
+              });
+              tHtml += '</tbody></table></div>';
+              tableHeaders = [];
+              tableRows = [];
+              inTable = false;
+              return tHtml;
+          };
+
+          for (let i = 0; i < lines.length; i++) {
+              const line = lines[i].trim();
+              
+              if (/^\|?[-:\s|]+\|?$/.test(line) && line.includes('-') && (line.includes('|') || line.includes(':'))) {
+                  inTable = true;
+                  continue;
+              }
+              
+              if (line.includes('|')) {
+                  const cells = line.split('|').map(c => c.trim()).filter((c, idx, arr) => {
+                      if ((idx === 0 || idx === arr.length - 1) && c === '') return false;
+                      return true;
+                  });
+                  if (cells.length >= 2) {
+                      if (!inTable && tableHeaders.length === 0) {
+                          tableHeaders = cells;
+                      } else {
+                          tableRows.push(cells);
+                      }
+                      inTable = true;
+                      continue;
+                  }
+              }
+              
+              if (inTable || tableHeaders.length > 0 || tableRows.length > 0) {
+                  outputLines.push(renderCurrentTable());
+              }
+              outputLines.push(line);
+          }
+          
+          if (inTable || tableHeaders.length > 0 || tableRows.length > 0) {
+              outputLines.push(renderCurrentTable());
+          }
+
+          let html = outputLines.join('\n')
             .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
             .replace(/(?<!\*)\*(?!\*)(.*?)\*/g, '<em>$1</em>')
             .replace(/\n\*/g, '<br/> ')
