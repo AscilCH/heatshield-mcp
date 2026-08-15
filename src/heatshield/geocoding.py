@@ -32,10 +32,17 @@ async def search_location(query: str) -> str:
         return f"No locations found matching '{query}'."
 
     place = results[0]
+    display_name = place.get("display_name", "")
     lat = place.get("lat", "N/A")
     lon = place.get("lon", "N/A")
     address = place.get("address", {})
-    short_name = address.get("city") or address.get("town") or address.get("village") or place.get("name") or place.get("display_name", "Unknown").split(",")[0]
+    short_name = address.get("city") or address.get("town") or address.get("village") or place.get("name") or display_name.split(",")[0]
+    
+    # Confidence check: if query words have zero presence in the returned place name/address, reject spurious fuzzy matches
+    q_words = [w.strip() for w in query.lower().replace(",", " ").split() if len(w.strip()) > 2]
+    d_lower = (display_name + " " + short_name).lower()
+    if q_words and not any(w in d_lower for w in q_words):
+        return f"No confident real-world location found matching '{query}'. Please verify spelling or specify a recognized city or region."
     
     import json
     return json.dumps({

@@ -49,36 +49,52 @@ class PromptGuard:
     """
     
     INJECTION_PATTERNS = [
-        r"ignore\s+(all\s+)?(previous|prior)\s+instructions",
-        r"disregard\s+(all\s+)?(previous|prior)\s+instructions",
-        r"system\s+prompt\s+(verbatim|leak|reveal|output)",
+        r"ignore\s+(all\s+)?(previous|prior|system)\s+instructions",
+        r"disregard\s+(all\s+)?(previous|prior|system)\s+instructions",
+        r"system\s+prompt\s+(verbatim|leak|reveal|output|display)",
         r"output\s+(your\s+)?(entire\s+)?system\s+prompt",
+        r"what\s+(is|are)\s+your\s+(exact\s+)?system\s+instructions",
         r"developer\s+mode\s+(enabled|on|activate)",
         r"dan\s+mode",
         r"jailbreak",
-        r"override\s+(all\s+)?(safety|rules|instructions)",
-        r"you\s+are\s+now\s+an?\s+(unrestricted|evil|unfiltered)",
-        r"pretend\s+you\s+have\s+no\s+(rules|guidelines|restrictions)",
+        r"override\s+(all\s+)?(safety|rules|instructions|boundaries)",
+        r"you\s+are\s+now\s+an?\s+(unrestricted|evil|unfiltered|general)",
+        r"pretend\s+you\s+have\s+no\s+(rules|guidelines|restrictions|boundaries)",
+        r"roleplay\s+as\s+a",
+        r"act\s+as\s+(an?\s+)?(unfiltered|unrestricted|general|different)",
         r"repeat\s+the\s+words\s+above",
     ]
 
     OFF_TOPIC_TRIGGER_PATTERNS = [
-        r"write\s+(me\s+)?a\s+(python|javascript|c\+\+|java|rust|go)\s+script",
-        r"write\s+(me\s+)?a\s+poem",
-        r"write\s+(me\s+)?a\s+story\s+about",
-        r"tell\s+me\s+a\s+joke\s+about",
-        r"how\s+to\s+make\s+(a\s+bomb|meth|drugs|weapons)",
-        r"recipe\s+for\s+(lasagna|cake|cookies|pizza|pasta)",
-        r"who\s+won\s+the\s+\d{4}\s+(world\s+cup|super\s+bowl|nba)",
+        # Video Games & Gaming Guides
+        r"(what\s+(should\s+we|to)\s+build|item\s+build|best\s+build|runes\s+for|counter\s+pick|champion\s+build|tier\s+list)",
+        r"(league\s+of\s+legends|dota|valorant|fortnite|minecraft|genshin|overwatch|counter-strike|pokemon|world\s+of\s+warcraft)",
+        r"(aatrox|darius|yasuo|garen|teemo|ahri|zed|jinx|vayne|master\s+yi|faker|riot\s+games)",
+        r"(loadout\s+for|perks\s+for|boss\s+fight|level\s+up\s+guide|speedrun)",
+        # Programming & Code
+        r"write\s+(me\s+)?(a\s+)?(python|javascript|c\+\+|java|rust|go|sql|html|css|php|ruby)\s+(script|code|program|function|class)",
+        r"(how\s+to\s+code|debug\s+this|quicksort|binary\s+search|leetcode|hackerrank)",
+        # Creative Writing & Entertainment
+        r"write\s+(me\s+)?a\s+(poem|story|song|essay|haiku|rap|novel)",
+        r"tell\s+me\s+a\s+(joke|riddle|funny\s+story)",
+        r"(movie\s+recommendation|best\s+movies|tv\s+shows|anime|manga)",
+        # Cooking, Trivia & General
+        r"recipe\s+for\s+",
+        r"how\s+to\s+cook\s+",
+        r"who\s+won\s+the\s+\d{4}\s+(world\s+cup|super\s+bowl|nba|uefa|champions\s+league|olympics)",
+        r"who\s+is\s+(the\s+richest|the\s+president\s+of|the\s+actor|the\s+celebrity)",
+        # Dangerous content
+        r"how\s+to\s+make\s+(a\s+bomb|meth|drugs|weapons|explosives)",
     ]
 
-    HEAT_DOMAIN_KEYWORDS = [
+    HEAT_DOMAIN_ROOTS = [
         "heat", "temperature", "weather", "forecast", "wbgt", "humidity", "uv",
         "sun", "cooling", "shelter", "walk", "route", "isochrone", "park",
         "sweat", "stroke", "exhaustion", "hydration", "water", "drought", "air quality",
         "aqi", "pm2.5", "ozone", "djerba", "sfax", "tunis", "paris", "tokyo", "cairo",
         "phoenix", "austin", "berlin", "midoun", "houmt souk", "death valley", "degrees",
-        "celsius", "fahrenheit", "radiation", "work", "rest", "niosh", "osha", "who", "cdc"
+        "celsius", "fahrenheit", "radiation", "work", "rest", "niosh", "osha", "who", "cdc",
+        "climate", "meteorolog", "thermal", "cold", "wind", "storm", "rain", "shade"
     ]
 
     @classmethod
@@ -96,19 +112,19 @@ class PromptGuard:
                     "is_safe": False,
                     "reason": "Direct Prompt Injection / Jailbreak Attempt",
                     "score": 0.98,
-                    "source": "PromptGuard Local Classifier"
+                    "source": "PromptGuard Security Gateway"
                 }
 
-        # 2. Tier 2: Off-Topic / General Assistant Guardrail
+        # 2. Tier 2: Off-Topic Domain Enforcer (Gaming, Coding, Trivia, Fiction)
         for pattern in cls.OFF_TOPIC_TRIGGER_PATTERNS:
             if re.search(pattern, normalized, re.IGNORECASE):
-                # Ensure it's not a heat query with embedded keywords
-                has_heat_keyword = any(kw in normalized for kw in ["heat", "wbgt", "thermal", "temperature", "hydration", "weather"])
-                if not has_heat_keyword:
+                # Ensure it's not a legitimate thermal safety question that coincidentally used a keyword
+                has_heat_root = any(root in normalized for root in ["heat", "wbgt", "thermal", "temperature", "hydration", "weather", "sunstroke", "heatwave"])
+                if not has_heat_root:
                     return {
                         "is_safe": False,
-                        "reason": "Off-Topic Request (Non-Heat Domain)",
-                        "score": 0.92,
+                        "reason": "Off-Topic Query (Outside Urban Heat & Weather Safety Domain)",
+                        "score": 0.95,
                         "source": "PromptGuard Domain Enforcer"
                     }
 
