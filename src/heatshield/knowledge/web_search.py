@@ -12,9 +12,14 @@ async def search_web_for_pdfs(query: str, max_results: int = 5) -> str:
         
         results = []
         with DDGS() as ddgs:
-            # text search returns a generator of dicts with 'title', 'href', 'body'
             for r in ddgs.text(search_query, max_results=max_results):
-                results.append(r)
+                url = r.get("href") or r.get("url") or ""
+                results.append({
+                    "title": r.get("title", "Document"),
+                    "url": url,
+                    "href": url,
+                    "snippet": r.get("body", "")
+                })
                 
         if not results:
             return json.dumps({"message": f"No PDF results found for query: {search_query}"})
