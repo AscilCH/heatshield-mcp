@@ -952,12 +952,13 @@ function App() {
           }
 
           let html = outputLines.join('\n')
+            .replace(/\[([^\]]+)\]\((https?:\/\/[^\s)]+)\)/g, '<a href="$2" target="_blank" rel="noopener noreferrer" class="chat-markdown-link">🔗 $1 ↗</a>')
             .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
             .replace(/(?<!\*)\*(?!\*)(.*?)\*/g, '<em>$1</em>')
-            .replace(/\n\*/g, '<br/> ')
-            .replace(/\n-/g, '<br/> ')
+            .replace(/\n\*/g, '<br/> • ')
+            .replace(/\n-/g, '<br/> • ')
             .replace(/\n/g, '<br/>');
-          return DOMPurify.sanitize(html);
+          return DOMPurify.sanitize(html, { ADD_ATTR: ['target', 'rel'] });
       };
       
       if (!section.startsWith('#')) {
