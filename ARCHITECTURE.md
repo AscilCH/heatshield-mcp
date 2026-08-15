@@ -12,9 +12,10 @@
 
 | Term | Full Name | Plain-English Software Engineering Definition |
 | :--- | :--- | :--- |
-| **OSRM** | **Open Source Routing Machine** | A high-performance C++ routing engine for OpenStreetMap road networks. Computes real-world walking paths, road geometry, and pedestrian transit times instead of straight-line distance. |
+| **gpm** | **Geopotential Meters** | The standard scientific unit measuring altitude in the atmosphere based on Earth's gravity and air pressure. At the 500hPa level, heights $\ge 5920\text{ gpm}$ indicate an extreme, persistent **Heat Dome** (atmospheric lid trapping heat). |
+| **hPa** | **Hectopascals** | The standard metric unit of atmospheric pressure ($1\text{ hPa} = 100\text{ Pascals} = 1\text{ millibar}$). Standard sea-level pressure is $\approx 1013.25\text{ hPa}$. Used in the 500hPa upper-troposphere layer to detect synoptic blocking ridges. |
 | **WBGT** | **Wet Bulb Globe Temperature** | The international gold standard for human thermal stress. Combines air temperature, humidity (sweat evaporation limit), solar radiant heat, and wind cooling into a single actionable index. |
-| **hPa** | **Hectopascals** | The standard metric unit of atmospheric pressure ($1\text{ hPa} = 100\text{ Pascals} = 1\text{ millibar}$). Standard sea-level pressure is $\approx 1013.25\text{ hPa}$. Used in the 500hPa synoptic atmospheric layer to detect heat dome blocking ridges. |
+| **OSRM** | **Open Source Routing Machine** | A high-performance C++ routing engine for OpenStreetMap road networks. Computes real-world walking paths, road geometry, and pedestrian transit times instead of straight-line distance. |
 | **Isochrone** | **Walkability Travel Polygon** | A closed geographical polygon showing all areas reachable on foot within a specific time limit (e.g., a 5-minute or 10-minute safe walking radius under heat exposure). |
 | **RAG** | **Retrieval-Augmented Generation** | Grounding the LLM by dynamically fetching verified medical (CDC/NIOSH) and workplace safety protocols into the prompt context to eliminate hallucinations. |
 
@@ -29,7 +30,7 @@ Traditional weather apps are **passive displays of isolated numbers**:
 3. **No Emergency Clinical Guidance:** When an outdoor worker collapses, conventional weather apps offer zero triage protocols.
 
 ### The Solution: HeatShield
-HeatShield is an **Autonomous Spatial Intelligence and Urban Thermal Safety Platform**. It converts natural language user requests (*"I need to walk to the market"*, *"My coworker collapsed on site"*) into coordinated actions: real-time climate data ingestion, deterministic biometeorological math, and dynamic map rendering.
+HeatShield is an **Autonomous Spatial Intelligence and Urban Thermal Safety Platform**. It converts natural language user requests (*"I need to walk to the market"*, *"My coworker collapsed on site"*, *"Is there a heat dome on the planet right now?"*) into coordinated actions: real-time climate data ingestion, deterministic biometeorological math, and dynamic map rendering.
 
 ---
 
@@ -48,12 +49,12 @@ A traditional web app relies on static forms and rigid buttons. We use a **Large
 ### Why Context Retention is Critical in Spatial AI
 In spatial and environmental reasoning, users interact conversationally across multiple turns:
 * **Turn 1:** *"How is the weather in Atlanta?"* $\rightarrow$ HeatShield fetches telemetry and sets the map view.
-* **Turn 2:** *"Draw a 5 km buffer zone around it."* $\rightarrow$ The LLM must resolve *"it"* as **Atlanta** using conversation history.
+* **Turn 2:** *"Draw a 5 km buffer zone around it."* $\rightarrow$ The LLM resolves *"it"* as **Atlanta** using conversation history.
 
 ```mermaid
 graph LR
     FrontendMsg["React UI State (messages[])"] -->|"POST /api/chat { message, history }"| APIGateway["FastAPI Endpoint"]
-    APIGateway -->|"System Prompt + History + Current User Msg"| LLM["LLM Multi-Turn Context Window"]
+    APIGateway -->|"System Prompt + Bounded History + User Msg"| LLM["LLM Multi-Turn Context Window"]
     LLM -->|"Dynamic Spatial Action (Atlanta Resolution)"| Tools["MCP Tool Execution"]
 ```
 
@@ -89,10 +90,10 @@ HeatShield organizes its 14 tools into three decoupled, single-responsibility la
 ### A. Data Ingestion & Retrieval Layer (7 Tools)
 * `get_weather_and_heat_risk`: Ingests live temperature, humidity, wind, solar radiation, and hourly UV index.
 * `get_air_quality_forecast`: Fetches 5-day atmospheric pollutant forecasts (US AQI, PM2.5, PM10, Ozone).
-* `geocode_location`: Resolves unstructured queries to verified geographical coordinates via OpenStreetMap Nominatim.
+* `geocode_location`: Multi-provider geocoder (Instant Local Cache $\rightarrow$ Open-Meteo Geocoding API $\rightarrow$ OSM Nominatim).
 * `find_cooling_spots`: Queries OpenStreetMap Overpass for air-conditioned public spaces, shaded parks, and water fountains.
 * `get_walking_route`: Generates pedestrian geometry, route distance, and walking duration via OSRM.
-* `get_heat_dome_footprint`: Evaluates 7-day 500hPa synoptic blocking patterns to detect regional heat dome anomalies.
+* `get_heat_dome_footprint`: **(Global & Regional Synoptic Engine)** Scans 7 planetary high-pressure corridors or validates live local 500hPa geopotential heights ($\ge 5920\text{ gpm}$).
 * `query_emergency_protocols`: **(RAG Retrieval)** Performs semantic vector similarity search over CDC/NIOSH emergency medical guidelines in ChromaDB.
 
 ### B. Pure Deterministic Compute Layer (3 Tools — Zero I/O, Pure Math)
@@ -108,7 +109,36 @@ HeatShield organizes its 14 tools into three decoupled, single-responsibility la
 
 ---
 
-## 📚 7. Why Did We Use RAG (Retrieval-Augmented Generation)?
+## 🌪️ 7. The Synoptic Heat Dome Engine: Global Scanning & Truthfulness
+
+Heat Domes are not arbitrary circles drawn on a map. They are **physical atmospheric phenomena** where the upper-tropospheric 500hPa pressure surface rises above **5,920 gpm**, trapping and compressing heat.
+
+```mermaid
+graph TD
+    UserQuery["User Heat Dome Request"] --> Scope{"Global Scan or Specific City?"}
+    
+    Scope -->|"Global Scan / Is there a dome on Earth?"| Scan["Scan 7 Global Subtropical Corridors via Open-Meteo Batch"]
+    Scan --> Filter["Filter Regions where Z500 >= 5920 gpm"]
+    Filter --> RenderGlobal["Render All Active Global Heat Domes Simultaneously"]
+    
+    Scope -->|"City Query (e.g., Paris or Phoenix)"| Check["Query Live Local 500hPa Height (Z500)"]
+    Check --> Cond{"Z500 >= 5920 gpm?"}
+    Cond -->|"Yes (e.g., Phoenix Z500=5951 gpm)"| RenderLocal["Render Authenticated Dual-Tier Isobar Contour"]
+    Cond -->|"No (e.g., Paris Z500=5863 gpm)"| Refuse["Honest Zero-Results: State Normal Zonal Flow + Report Active Alternatives"]
+```
+
+### The 7 Monitored Planetary Corridors:
+1. **North American Plains Ridge** (Central USA / Texas / Oklahoma)
+2. **Sonoran / Great Basin Dome** (Southwest USA & NW Mexico)
+3. **Persian Gulf / Arabian Dome** (Middle East & Arabian Peninsula)
+4. **Sahara / Central Mediterranean** (North Africa & Southern Italy)
+5. **Iberian Peninsula** (Spain & Western Mediterranean)
+6. **Indus Valley** (Pakistan & NW India)
+7. **Western Pacific Subtropical High** (East Asia / Yangtze Basin)
+
+---
+
+## 📚 8. Why Did We Use RAG (Retrieval-Augmented Generation)?
 
 In life-safety and occupational medicine, **hallucinations are dangerous**. An LLM cannot be allowed to guess symptoms or fabricate first-aid protocols.
 
@@ -117,7 +147,7 @@ In life-safety and occupational medicine, **hallucinations are dangerous**. An L
 
 ---
 
-## 🔒 8. Security, Threat Model & PromptGuard Architecture
+## 🔒 9. Security, Threat Model & PromptGuard Architecture
 
 Civic and life-safety systems require strict protection against malicious prompt injections, jailbreaks, mission drift, and unauthorized escalations.
 
@@ -147,7 +177,7 @@ graph TD
 
 ---
 
-## 🚀 9. Real-World Deployment Architecture (Vercel + Render + GitHub Actions)
+## 🚀 10. Real-World Deployment Architecture (Vercel + Render + GitHub Actions)
 
 HeatShield is deployed via modern, serverless cloud platforms connected directly to GitHub:
 
