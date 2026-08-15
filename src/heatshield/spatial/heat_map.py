@@ -1,7 +1,7 @@
 import httpx
 import json
 import logging
-from heatshield.spatial_cache import get_cached_heatmap, set_cached_heatmap
+from heatshield.spatial.spatial_cache import get_cached_heatmap, set_cached_heatmap
 
 OVERPASS_URLS = [
     "https://lz4.overpass-api.de/api/interpreter",

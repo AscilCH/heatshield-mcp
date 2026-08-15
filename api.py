@@ -16,7 +16,7 @@ from openai import AsyncOpenAI
 from mcp.client.stdio import stdio_client, StdioServerParameters
 from mcp.client.session import ClientSession
 import typing
-from src.heatshield.security import verify_api_key, RateLimiter, PromptGuard
+from heatshield.core.security import verify_api_key, RateLimiter, PromptGuard
 from dotenv import load_dotenv
 
 load_dotenv(override=True)

@@ -1,6 +1,6 @@
 import httpx
 import json
-from . import occupational
+from heatshield.core import occupational
 
 def get_heatwave_forecast(latitude: float, longitude: float, days: int = 7) -> str:
     """

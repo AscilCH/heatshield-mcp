@@ -3,7 +3,7 @@ import json
 import asyncio
 import logging
 from shapely.geometry import shape
-from heatshield.spatial_cache import get_cached_heatmap
+from heatshield.spatial.spatial_cache import get_cached_heatmap
 
 logger = logging.getLogger(__name__)
 
