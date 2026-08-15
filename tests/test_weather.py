@@ -3,7 +3,11 @@ import json
 import httpx
 from unittest.mock import AsyncMock, patch, MagicMock
 
-from src.heatshield.weather import calculate_heat_risk, get_weather_data
+from heatshield.weather import calculate_heat_risk, get_weather_data, _WEATHER_CACHE
+
+@pytest.fixture(autouse=True)
+def clear_weather_cache():
+    _WEATHER_CACHE.clear()
 
 @pytest.mark.parametrize("apparent_temp, uv_index, expected", [
     (39.0, 5.0, "EXTREME"),
@@ -32,9 +36,12 @@ async def test_get_weather_data_success(mock_get):
         "current": {
             "temperature_2m": 35.0,
             "apparent_temperature": 38.0,
-            "relative_humidity_2m": 40
+            "relative_humidity_2m": 40,
+            "wind_speed_10m": 12.0,
+            "shortwave_radiation": 800.0
         },
         "hourly": {
+            "apparent_temperature": [30.0, 32.0, 35.0, 38.0, 36.0, 30.0],
             "uv_index": [2.0, 5.0, None, 8.0, 1.0]
         }
     }
@@ -47,7 +54,7 @@ async def test_get_weather_data_success(mock_get):
     assert result["temperature_celsius"] == 35.0
     assert result["feels_like_celsius"] == 38.0
     assert result["humidity_percent"] == 40
-    assert result["max_uv_index_today"] == 8.0
+    assert result["uv_index"] == 8.0
     assert result["heat_risk_level"] == "EXTREME" 
 
 @pytest.mark.asyncio
@@ -70,7 +77,7 @@ async def test_get_weather_data_defaults(mock_get):
     assert result["temperature_celsius"] == 0.0
     assert result["feels_like_celsius"] == 0.0
     assert result["humidity_percent"] == 0.0
-    assert result["max_uv_index_today"] == 0.0
+    assert result["uv_index"] == 0.0
     assert result["heat_risk_level"] == "LOW"
 
 @pytest.mark.asyncio
@@ -92,17 +99,11 @@ async def test_get_weather_data_empty_uv(mock_get):
     result_json = await get_weather_data(34.0, -118.0)
     result = json.loads(result_json)
     
-    assert result["max_uv_index_today"] == 0.0
+    assert result["uv_index"] == 0.0
 
 @pytest.mark.asyncio
 @patch('httpx.AsyncClient.get')
 async def test_get_weather_data_failure(mock_get):
-    mock_response = MagicMock()
-    mock_response.raise_for_status.side_effect = httpx.RequestError("API Error")
-    mock_get.return_value = mock_response
-
-    # Need to use a side_effect that properly initializes RequestError if it fails,
-    # actually mock_get.side_effect is better:
     mock_get.side_effect = httpx.RequestError("API Error", request=MagicMock())
 
     result = await get_weather_data(34.0, -118.0)

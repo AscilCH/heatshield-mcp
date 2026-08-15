@@ -52,13 +52,12 @@ async def test_get_walking_info_exception():
     assert dur == -1
 
 @pytest.mark.parametrize("lat1, lon1, lat2, lon2, expected", [
-    (48.8566, 2.3522, 51.5074, -0.1278, 343000), # Paris to London ~343km
+    (48.8566, 2.3522, 51.5074, -0.1278, 343000),
     (0, 0, 0, 0, 0),
-    (90, 0, -90, 0, 20015086), # Pole to Pole
+    (90, 0, -90, 0, 20015086),
 ])
 def test_calculate_haversine(lat1, lon1, lat2, lon2, expected):
     dist = calculate_haversine(lat1, lon1, lat2, lon2)
-    # Haversine with R=6371000
     assert abs(dist - expected) < 2000
 
 @pytest.mark.asyncio
@@ -73,7 +72,7 @@ async def test_search_cooling_spots_no_spots(mock_client_class):
     mock_client.post.return_value = mock_resp
     
     result = await search_cooling_spots(0, 0)
-    assert 'No cooling spots found' in result
+    assert 'no_verified_spots' in result
 
 @pytest.mark.asyncio
 @patch('heatshield.cooling_spots.httpx.AsyncClient')
@@ -84,7 +83,7 @@ async def test_search_cooling_spots_overpass_exception(mock_client_class):
     mock_client.post.side_effect = Exception("Overpass down")
     
     result = await search_cooling_spots(0, 0)
-    assert 'No cooling spots found' in result
+    assert 'no_verified_spots' in result
 
 @pytest.mark.asyncio
 @patch('heatshield.cooling_spots.get_walking_info')
@@ -98,13 +97,11 @@ async def test_search_cooling_spots_success(mock_client_class, mock_get_walking_
     mock_resp.json.return_value = {
         "elements": [
             {"type": "node", "lat": 0.01, "lon": 0.01, "tags": {"name": "Cool Park", "amenity": "drinking_water"}},
-            {"type": "node", "lat": 0.02, "lon": 0.02, "tags": {}}, # unnamed
-            {"type": "node", "lat": 0.03, "lon": 0.03, "tags": {"name": ""}}, # empty name
+            {"type": "node", "lat": 0.02, "lon": 0.02, "tags": {}},
+            {"type": "node", "lat": 0.03, "lon": 0.03, "tags": {"name": ""}},
         ]
     }
     mock_client.post.return_value = mock_resp
-    
-    # Mock walk info return values
     mock_get_walking_info.return_value = (1000, 714)
     
     result = await search_cooling_spots(0.0, 0.0)
@@ -112,11 +109,8 @@ async def test_search_cooling_spots_success(mock_client_class, mock_get_walking_
     
     assert "summary" in data
     assert len(data["elements"]) == 3
-    
     names = [e.get("tags", {}).get("name") for e in data["elements"]]
     assert "Cool Park" in names
-    
-    # Walk time -> 714 // 60 = 11
     assert "11 minutes" in data["summary"]
 
 @pytest.mark.asyncio
@@ -134,10 +128,8 @@ async def test_search_cooling_spots_osrm_failure(mock_client_class, mock_get_wal
         ]
     }
     mock_client.post.return_value = mock_resp
-    
     mock_get_walking_info.return_value = (-1, -1)
     
     result = await search_cooling_spots(0.0, 0.0)
     data = json.loads(result)
-    
     assert "Direct line" in data["summary"]

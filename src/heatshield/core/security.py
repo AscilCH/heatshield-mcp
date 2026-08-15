@@ -14,6 +14,7 @@ async def verify_api_key(api_key_header: str = Security(api_key_header)):
             status_code=401,
             detail="Unauthorized: Invalid or missing API Key"
         )
+    return api_key_header
 # 2. IP RATE LIMITER (In-Memory Token Bucket / Window)
 class RateLimiter:
     def __init__(self, requests_per_minute: int = 30):

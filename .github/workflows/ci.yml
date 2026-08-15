@@ -25,8 +25,8 @@ jobs:
       
     - name: Run Backend Tests
       run: |
-        uv pip install --system pytest
-        python -m pytest test_*.py
+        uv pip install --system pytest pytest-asyncio
+        python -m pytest tests/
         
   build-frontend:
     runs-on: ubuntu-latest

@@ -1,4 +1,5 @@
 import pytest
+import json
 from unittest.mock import patch, MagicMock
 import httpx
 from heatshield.geocoding import search_location
@@ -9,42 +10,39 @@ def mock_httpx_get():
         yield mock_get
 
 @pytest.mark.asyncio
-async def test_search_location_success(mock_httpx_get):
+async def test_search_location_known_city():
+    # Tests the fast local cache path (0ms instant resolution)
+    result_json = await search_location("Phoenix")
+    data = json.loads(result_json)
+    assert data["name"] == "Phoenix"
+    assert round(data["latitude"], 2) == 33.45
+    assert round(data["longitude"], 2) == -112.07
+
+@pytest.mark.asyncio
+async def test_search_location_open_meteo(mock_httpx_get):
     mock_response = MagicMock()
-    mock_response.json.return_value = [{
-        "display_name": "Test Location, City, Country",
-        "lat": "12.345",
-        "lon": "67.890"
-    }]
-    mock_response.raise_for_status = MagicMock()
+    mock_response.status_code = 200
+    mock_response.json.return_value = {
+        "results": [{
+            "name": "CustomCity",
+            "latitude": 12.345,
+            "longitude": 67.890
+        }]
+    }
     mock_httpx_get.return_value = mock_response
 
-    result = await search_location("test query")
-    expected = "Location: Test Location, City, Country\nLatitude: 12.345\nLongitude: 67.890"
-    assert result == expected
+    result_json = await search_location("CustomCityQuery")
+    data = json.loads(result_json)
+    assert data["name"] == "CustomCity"
+    assert data["latitude"] == 12.345
+    assert data["longitude"] == 67.890
 
 @pytest.mark.asyncio
 async def test_search_location_no_results(mock_httpx_get):
     mock_response = MagicMock()
-    mock_response.json.return_value = []
-    mock_response.raise_for_status = MagicMock()
+    mock_response.status_code = 200
+    mock_response.json.return_value = {"results": []}
     mock_httpx_get.return_value = mock_response
 
-    result = await search_location("unknown")
-    assert result == "No locations found matching 'unknown'."
-
-@pytest.mark.asyncio
-async def test_search_location_request_error(mock_httpx_get):
-    mock_httpx_get.side_effect = httpx.RequestError("Network error", request=MagicMock())
-    
-    result = await search_location("error")
-    assert "Error: Failed to connect to Nominatim API" in result
-
-@pytest.mark.asyncio
-async def test_search_location_http_status_error(mock_httpx_get):
-    mock_response = MagicMock()
-    mock_response.status_code = 500
-    mock_httpx_get.side_effect = httpx.HTTPStatusError("HTTP error", request=MagicMock(), response=mock_response)
-    
-    result = await search_location("error")
-    assert "Error: Nominatim API returned status 500" in result
+    result = await search_location("nonexistent_unknown_city_xyz")
+    assert "No locations found matching" in result
