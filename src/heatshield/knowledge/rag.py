@@ -18,6 +18,15 @@ def get_chroma_collection():
         import chromadb
         _chroma_client = chromadb.PersistentClient(path=CHROMA_PERSIST_DIR)
         _collection = _chroma_client.get_or_create_collection(name="emergency_protocols")
+        if _collection.count() == 0:
+            docs = [p["content"] for p in OFFICIAL_PROTOCOLS]
+            metadatas = [{"source": p["source"]} for p in OFFICIAL_PROTOCOLS]
+            ids = [f"official_proto_{i}" for i in range(len(OFFICIAL_PROTOCOLS))]
+            _collection.add(
+                ids=ids,
+                documents=docs,
+                metadatas=metadatas
+            )
     return _collection
 
 # Initialize Embedding Model (Lazy load to save memory on import)
@@ -132,10 +141,8 @@ OFFICIAL_PROTOCOLS = [
 ]
 
 def _sync_query(query: str, n_results: int):
-    model = get_embedding_model()
     collection = get_chroma_collection()
-    query_embedding = model.encode([query]).tolist()
-    return collection.query(query_embeddings=query_embedding, n_results=n_results)
+    return collection.query(query_texts=[query], n_results=n_results)
 
 async def query_protocols(query: str, n_results: int = 3) -> str:
     """Queries official medical protocols with ChromaDB vector search and instant curated response."""
