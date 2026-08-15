@@ -1,234 +1,217 @@
-# 🏗️ HeatShield: Advanced Spatial RAG Architecture
+# HeatShield: Software Engineering & System Architecture Whitepaper
 
-This document visually breaks down exactly how the HeatShield project operates. It is designed as an Agentic Spatial Analytics Platform for urban climate resilience.
+![HeatShield 3D Cylindrical Platform Architecture](C:\Users\USER\.gemini\antigravity\brain\03fd958e-d58e-45fd-935e-f0d33d0baefb\heatshield_stack_architecture_1786784580074.jpg)
 
-> [!TIP]
-> **Core Architecture:** HeatShield uses a **Model Context Protocol (MCP)** backend to orchestrate complex spatial algorithms, real-time meteorological data, and a Vector Database for grounded medical protocols.
-
----
-
-## 1. System Overview
-
-HeatShield is an **Agentic Spatial Analytics Platform** designed for urban climate resilience. It uses a **Model Context Protocol (MCP)** backend to orchestrate complex spatial algorithms, real-time meteorological data, and a Vector Database for grounded medical protocols.
-
-### 🌐 Frontend (React + Vite + Leaflet)
-* **Glassmorphism UI:** Modern, responsive chat interface.
-* **Spatial Rendering:** Uses `react-leaflet` to render custom GeoJSON Polygon overlays (not just standard pins) to visualize Urban Heat Islands (UHI).
-* **Data Visualization:** Uses `recharts` to render dismissible, multi-axis predictive widgets for Soil Moisture and Air Quality forecasting.
-* **Geolocation Native:** Automatically requests browser geolocation on mount to instantly contextualize emergency data.
-
-### 🧠 Backend Orchestration (FastAPI + MCP + Gemini)
-* **API Gateway:** A FastAPI layer (`api.py`) receives chat messages and intercepts structured spatial payloads (GeoJSON/Forecasts) before passing them to the frontend.
-* **LLM Engine:** Uses the `openai` Python SDK (pointed at Gemini 3.5 Flash Lite) with function-calling capabilities.
-* **MCP Server (`server.py`):** Encapsulates all spatial tools using the open-standard Model Context Protocol. This makes the tools agnostic and reusable by any agentic framework.
+**Project Name:** HeatShield  
+**Domain:** Urban Heat Resilience & Agentic Spatial Intelligence  
+**Tech Stack:** Python (FastAPI, MCP SDK, Shapely) · React 19 (Vite, Leaflet, Recharts) · Meta PromptGuard · Open-Meteo & OpenStreetMap APIs  
 
 ---
 
-## 2. The Agentic Tool Stack (MCP)
+## 📖 1. Engineering Glossary & Key Concepts
 
-When the user asks a question, Gemini has access to the following deterministic tools:
-
-### 🗺️ OpenStreetMap & OSRM Integration
-1. `geocode_location`: Resolves string addresses into exact coordinates using Nominatim.
-2. `search_cooling_spots`: Queries OSM for nearby parks and fountains, and uses **OSRM (Open Source Routing Machine)** to calculate true walking distances (not crow-flies distance).
-3. `generate_uhi_heatmap`: **(Advanced)** Extracts exact geographic polygon geometries (buildings, parking lots vs forests, parks) using the Overpass API. It uses a **DuckDB Spatial Cache** to store processed 1km grids locally with a **30-day TTL (Time To Live)**, preventing API rate limits and dropping load times from 10s to 50ms while ensuring city infrastructure stays up to date.
-4. `get_walking_route`: **(Advanced)** Uses OSRM to generate multiple alternative walking paths, and uses `shapely` geometric intersection against the DuckDB UHI cache to calculate "heat exposure." The tool returns a Shade-Optimized route that algorithmically avoids hot areas.
-
-### 🌤️ Real-Time & Predictive Climate Data
-5. `get_weather_and_heat_risk`: Fetches live Open-Meteo data and calculates WHO/CDC Risk Levels.
-6. `get_heatwave_forecast`: Analyzes a 7-day forecast, specifically correlating High Temperatures with **Soil Moisture/Drought** data to calculate a "Climate Aggravation Risk."
-7. `get_air_quality_forecast`: Fetches a 5-day predictive trajectory of PM10 (dust) and PM2.5 (smoke), crucial during dry heatwaves.
-
-### 📚 Spatial RAG (Retrieval-Augmented Generation)
-8. `query_emergency_protocols`: **(Advanced)**
-   * **Database:** Uses a local **ChromaDB** Vector Database.
-   * **Embeddings:** Uses `sentence-transformers` (`all-MiniLM-L6-v2`) to convert text into high-dimensional vectors.
-   * **Function:** When asked for advice, it performs a semantic similarity search across ingested PDFs, injecting the exact medical/engineering guidelines into the prompt to completely eliminate LLM hallucinations.
-9. `ingest_emergency_document_url`: **(Dynamic Ingestion)** Allows the AI to download external PDFs (e.g., from the WHO, EPA, ASHRAE) or text documents via URL, extract the text using `pypdf`, chunk it, and dynamically insert the embeddings into ChromaDB at runtime so it is instantly searchable.
-10. `search_web_for_pdfs`: **(Autonomous Discovery)** Uses the `duckduckgo-search` library to autonomously scour the web for official PDFs when the AI encounters a knowledge gap. This tool is **100% domain-agnostic**—the AI formulates its own queries (e.g., `site:who.int medical guidelines`, `site:epa.gov urban heat`, `site:ashrae.org building standards`) enabling zero-configuration web intelligence without paid APIs.
+| Term | Full Name | Plain-English Software Engineering Definition |
+| :--- | :--- | :--- |
+| **OSRM** | **Open Source Routing Machine** | A high-performance C++ routing engine for OpenStreetMap road networks. Computes real-world walking paths, road geometry, and pedestrian transit times instead of straight-line distance. |
+| **WBGT** | **Wet Bulb Globe Temperature** | The international gold standard for human thermal stress. Combines air temperature, humidity (sweat evaporation limit), solar radiant heat, and wind cooling into a single actionable index. |
+| **hPa** | **Hectopascals** | The standard metric unit of atmospheric pressure ($1\text{ hPa} = 100\text{ Pascals} = 1\text{ millibar}$). Standard sea-level pressure is $\approx 1013.25\text{ hPa}$. Used in the 500hPa synoptic atmospheric layer to detect heat dome blocking ridges. |
+| **Isochrone** | **Walkability Travel Polygon** | A closed geographical polygon showing all areas reachable on foot within a specific time limit (e.g., a 5-minute or 10-minute safe walking radius under heat exposure). |
+| **RAG** | **Retrieval-Augmented Generation** | Grounding the LLM by dynamically fetching verified medical (CDC/NIOSH) and workplace safety protocols into the prompt context to eliminate hallucinations. |
 
 ---
 
-## 3. Data Flow & Architecture Diagrams
+## 🎯 2. The Problem Space & Core Mission
 
-### A. Core System Orchestration
-This diagram shows how the FastAPI backend routes chat messages to Gemini, and how Gemini orchestrates the various spatial and climate tools.
+### The Problem
+Traditional weather apps are **passive displays of isolated numbers**:
+1. **Numbers without Context:** Displaying "32°C" ignores the fact that 32°C at 85% humidity creates lethal thermal strain, whereas 35°C in dry air is manageable.
+2. **No Spatial Actionability:** They cannot calculate whether a pedestrian walking corridor is thermally safe, nor map shaded rest stops.
+3. **No Emergency Clinical Guidance:** When an outdoor worker collapses, conventional weather apps offer zero triage protocols.
 
-```mermaid
-graph LR
-    %% User and Interface
-    User((User))
-    
-    subgraph Frontend ["💻 React + Leaflet (Frontend)"]
-        Chat[Chat Interface]
-        Map[Interactive Map]
-    end
-    
-    subgraph Backend ["⚙️ FastAPI (API Gateway)"]
-        Firewall[🛡️ Middleware Firewall]
-        Router[Chat Endpoint]
-        Parser[JSON Payload Interceptor]
-    end
-    
-    subgraph AI ["🧠 LLM Engine"]
-        Agent((Gemini 3.5 Flash Lite))
-    end
-    
-    subgraph Tools ["🛠️ HeatShield MCP Server"]
-        RAG[(RAG Engine)]
-        DuckDB[(DuckDB Spatial Cache)]
-        OSM[OpenStreetMap / Overpass API]
-        OSRM[OSRM Public Routing API]
-        Weather[Open-Meteo API]
-    end
-    
-    %% Flows
-    User -->|Asks Question| Chat
-    Chat -->|Sends message & coords| Firewall
-    Firewall -->|Sanitized Request| Router
-    Router -->|Passes history & tools| Agent
-    
-    Agent -->|1. RAG Search| RAG
-    Agent -->|2. Check Cache First| DuckDB
-    DuckDB -.->|Cache Miss| OSM
-    Agent -->|3. Route Request| OSRM
-    Agent -->|4. Forecasts| Weather
-    
-    RAG -.->|Protocols| Agent
-    OSM -.->|UHI Polygons| DuckDB
-    DuckDB -.->|Instant GeoJSON| Agent
-    OSRM -.->|Walking Routes| Agent
-    Weather -.->|Climate Data| Agent
-    
-    Agent -->|Final Text + JSON payloads| Parser
-    Parser -->|Strips Text| Chat
-    Parser -->|Strips GeoJSON/Charts| Map
-    
-    Chat -.->|Displays Text Response| User
-    Map -.->|Renders Glowing Heatmap & Routes| User
+### The Solution: HeatShield
+HeatShield is an **Autonomous Spatial Intelligence and Urban Thermal Safety Platform**. It converts natural language user requests (*"I need to walk to the market"*, *"My coworker collapsed on site"*) into coordinated actions: real-time climate data ingestion, deterministic biometeorological math, and dynamic map rendering.
+
+---
+
+## 🧠 3. Why Do We Need an LLM?
+
+A traditional web app relies on static forms and rigid buttons. We use a **Large Language Model (LLM)** as the central reasoning orchestrator because:
+
+```
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                           WHY AN LLM IS ESSENTIAL                           │
+├─────────────────────────────────────────────────────────────────────────────┤
+│ 1. Natural Language Intent Parsing:                                         │
+│    Users don't query APIs with coordinates and parameters. They speak        │
+│    naturally: "Can my crew pour concrete safely this afternoon in Phoenix?" │
+│                                                                             │
+│ 2. Autonomous Multi-Step Planning:                                         │
+│    The LLM reasons across multiple domains: Geocoding → Telemetry Fetch →  │
+│    Thermal Stress Math → Pedestrian Routing → Canvas UI Generation.         │
+│                                                                             │
+│ 3. Contextual Synthesis & Empathy:                                          │
+│    Converts raw numerical sensor streams into prioritized, life-saving      │
+│    human advice tailored to the user's specific activity level.             │
+└─────────────────────────────────────────────────────────────────────────────┘
 ```
 
-### B. Autonomous RAG Pipeline (Discovery & Ingestion)
-This diagram specifically breaks down how the system autonomously hunts for external PDFs using DuckDuckGo, vectorizes them, and retrieves them during a conversation without relying on the LLM to read the entire web.
+---
+
+## 💬 4. Multi-Turn Conversation Context & State Management
+
+### Why Context Retention is Critical in Spatial AI
+In spatial and environmental reasoning, users interact conversationally across multiple turns:
+* **Turn 1:** *"How is the weather in Atlanta?"* $\rightarrow$ HeatShield fetches telemetry and sets the map view.
+* **Turn 2:** *"Draw a 5 km buffer zone around it."* $\rightarrow$ The LLM must resolve *"it"* as **Atlanta** using conversation history.
+
+### The Technical State Pipeline:
+```mermaid
+graph LR
+    FrontendMsg["React UI State (messages[])"] -->|"POST /api/chat { message, history }"| APIGateway["FastAPI Endpoint"]
+    APIGateway -->|"System Prompt + History + Current User Msg"| LLM["LLM Multi-Turn Context Window"]
+    LLM -->|"Dynamic Spatial Action (Atlanta Resolution)"| Tools["MCP Tool Execution"]
+```
+* **Client-Side:** `App.jsx` preserves conversational turn history in React state.
+* **Server-Side:** `api.py` appends historical turns to the active LLM context window so pronouns, references, and previously established coordinates remain consistent.
+
+---
+
+## 🔌 5. Why Does the LLM Need MCP (Model Context Protocol)?
+
+LLMs in isolation suffer from two fundamental software limitations:
+1. **Knowledge Cutoff & Sensor Blindness:** An LLM cannot query live weather satellites or read live GPS feeds.
+2. **Arithmetic & Spatial Hallucination:** LLMs are probabilistic token predictors; they cannot reliably calculate complex biometeorological formulas or generate exact vector geometries inline.
+
+### The MCP Solution
+MCP provides an **open, standardized protocol (JSON-RPC)** that decouples the LLM "brain" from backend data and execution tools:
+
+```
+┌─────────────────┐       Model Context Protocol (JSON-RPC)       ┌────────────────────────┐
+│    LLM Engine   │ ◄──────────────────────────────────────────► │  HeatShield MCP Server │
+│ (Decision Core) │                                               │ (Data, Compute, Tools) │
+└─────────────────┘                                               └────────────────────────┘
+```
+
+* **Contract-Driven Tool Execution:** Tools expose strict JSON schemas describing their parameters.
+* **Deterministic Compute:** Complex biometeorological math (WBGT, NIOSH work/rest cycles) runs in pure Python, returning exact, verified outputs to the LLM.
+* **Modularity:** New data sources or geographic engines can be plugged into the MCP server without altering the LLM reasoning loop.
+
+---
+
+## 🧰 6. Complete MCP Tool Suite (13 Primitives)
+
+### A. Data Layer Tools (Ingestion & Geocoding)
+* `get_weather_and_heat_risk`: Ingests live temperature, humidity, wind, solar radiation, and hourly UV index.
+* `get_air_quality_forecast`: Fetches 5-day atmospheric pollutant forecasts (US AQI, PM2.5, PM10, Ozone).
+* `geocode_location`: Resolves unstructured queries to verified geographical coordinates via OpenStreetMap Nominatim.
+* `find_cooling_spots`: Queries OpenStreetMap Overpass for air-conditioned public spaces, shaded parks, and water fountains.
+* `get_walking_route`: Generates pedestrian geometry, route distance, and walking duration via OSRM.
+* `get_heat_dome_footprint`: Evaluates 7-day 500hPa synoptic blocking patterns to detect regional heat dome anomalies.
+
+### B. Deterministic Compute Tools (Pure Computation)
+* `compute_wbgt`: Calculates Wet Bulb Globe Temperature based on the Australian BOM formula with outdoor solar and wind cooling adjustments.
+* `compute_work_rest_cycle`: Evaluates official NIOSH/OSHA work/rest ratios (e.g. 15 min work / 45 min rest) and hourly hydration requirements based on workload intensity.
+* `compute_heat_risk`: Categorizes environmental risk into standard WHO/CDC tiers (LOW, MODERATE, HIGH, EXTREME).
+* `query_emergency_protocols`: Retrieves clinical triage protocols to distinguish heat exhaustion from life-threatening heat stroke.
+
+### C. Canvas UI Tools (Generative Map & Visuals)
+* `draw_map_layer`: Renders custom GeoJSON polygons, thermal corridors, and isochrones directly on the Leaflet map canvas.
+* `set_camera_view`: Dynamically navigates and zooms the map camera to target coordinates worldwide.
+* `open_comparison_view`: Mounts side-by-side multi-city comparative data matrices onto the canvas dock.
+* `open_chart_panel`: Renders interactive time-series line and dual-axis charts on the canvas dock.
+
+---
+
+## 📚 7. Why Did We Use RAG (Retrieval-Augmented Generation)?
+
+In life-safety and occupational medicine, **hallucinations are dangerous**. An LLM cannot be allowed to guess symptoms or fabricate first-aid protocols.
+
+```
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                           HOW RAG PROTECTS USERS                            │
+├─────────────────────────────────────────────────────────────────────────────┤
+│ 1. Grounded Medical Triage:                                                 │
+│    When a user reports a collapsed coworker who has stopped sweating,       │
+│    HeatShield retrieves official CDC/NIOSH triage knowledge:                │
+│    → Identifies Heat Stroke (Core temp > 40°C, CNS dysfunction).            │
+│    → Triggers the "Cool First, Transport Second" emergency directive.       │
+│                                                                             │
+│ 2. Grounded Workplace Standards:                                            │
+│    Retrieves uncompromised NIOSH/OSHA standards for metabolic workload      │
+│    categories (Light, Moderate, Heavy) ensuring legally compliant guidance. │
+└─────────────────────────────────────────────────────────────────────────────┘
+```
+
+---
+
+## 🔒 8. Security & PromptGuard Architecture
+
+Civic and life-safety systems require strict protection against malicious prompt injections, jailbreaks, and mission drift.
 
 ```mermaid
 graph TD
-    subgraph Autonomous Discovery ["🔍 Autonomous Discovery (Domain-Agnostic)"]
-        Gemini1((Gemini LLM))
-        SearchTool[search_web_for_pdfs Tool]
-        DuckDuckGo((DuckDuckGo Search))
-        
-        Gemini1 -->|Identifies Knowledge Gap| SearchTool
-        SearchTool -->|Dynamic Query e.g. 'site:epa.gov filetype:pdf'| DuckDuckGo
-        DuckDuckGo -->|Returns Official URLs| SearchTool
-    end
-
-    subgraph Dynamic Ingestion Pipeline ["📥 Dynamic Ingestion Pipeline"]
-        PythonFetcher[Python HTTPX & PyPDF]
-        Chunker[Text Splitter / Chunker]
-        EmbeddingModel[Sentence-Transformers Model]
-        
-        SearchTool -->|Passes URL| PythonFetcher
-        PythonFetcher -->|Download & Extract Text| Chunker
-        Chunker -->|Split into Paragraphs| EmbeddingModel
-    end
-
-    subgraph ChromaDB ["🗄️ ChromaDB (Vector Database)"]
-        VectorStore[(Local Vector Store)]
-    end
+    UserPrompt["Inbound User Prompt"] --> PG{"PromptGuard Gateway"}
     
-    subgraph Retrieval Pipeline ["🔎 Retrieval Pipeline"]
-        Gemini2((Gemini LLM))
-        MCPTool[query_emergency_protocols Tool]
-        QueryEmbedder[Sentence-Transformers Model]
-        
-        Gemini2 -->|'What are the engineering standards?'| MCPTool
-        MCPTool -->|Vectorize Query| QueryEmbedder
-    end
-
-    %% Connections
-    EmbeddingModel -->|Save Vectors & Text| VectorStore
-    QueryEmbedder -->|Semantic Similarity Search| VectorStore
-    VectorStore -.->|Returns Top 3 Paragraphs| MCPTool
-    MCPTool -.->|Injects Text into Prompt| Gemini2
+    PG -->|"Jailbreak / Injection Pattern"| Block1["🛡️ Fast-Path Block (<0.1ms)<br/>Direct Jailbreak Interception"]
+    PG -->|"Off-Topic Domain (Gaming / Coding / Recipes)"| Block2["🛡️ Domain Enforcer Block<br/>Refuse Non-Heat Tasks"]
+    PG -->|"Valid Thermal / Weather Task"| LLM["Pass to Autonomous Planner & MCP Tools"]
+    
+    LLM --> Tools["MCP Tools Execute (Data + Compute)"]
+    Tools --> Sanitizer["DOMPurify XSS Sanitization"]
+    Sanitizer --> CanvasUI["Render to Leaflet Map & Canvas UI"]
 ```
 
-### C. Optimized RAG Sequence Diagram (With Reasoning Phase)
-This sequence diagram illustrates the advanced **Task Decomposition & Chain-of-Thought (CoT)** architecture. Instead of blindly executing tools, the AI is forced into a Reasoning Phase to parse intent and formulate a plan before triggering the execution phase.
+### Defense-in-Depth Tiers:
+1. **Tier 1: Fast-Path Deterministic Guard:** Instantly intercepts known adversarial patterns (`"ignore previous instructions"`, `"system prompt verbatim"`, `"DAN mode"`) in $<0.1\text{ ms}$ without wasting API tokens.
+2. **Tier 2: Domain Boundary Enforcer:** Blocks explicit non-domain tasks (video game builds, coding scripts, creative writing, recipes) before they reach the LLM.
+3. **Tier 3: Meta-Llama `Prompt-Guard-86M` Integration:** Deep transformer-based classifier scanning input embeddings for obfuscated adversarial tokens.
+4. **Tier 4: Client-Side DOMPurify Sanitization:** All dynamic HTML rendered inside Leaflet map popups passes through `DOMPurify.sanitize()` to eliminate Cross-Site Scripting (XSS) risks.
+
+---
+
+## 🚀 9. Real-World Deployment Architecture (Vercel + Render + GitHub Actions)
+
+HeatShield is deployed via modern, serverless cloud platforms connected directly to GitHub:
 
 ```mermaid
 sequenceDiagram
-    actor User
-    participant Frontend as React UI
-    participant Agent as Gemini LLM
-    participant Search as DuckDuckGo Tool
-    participant Ingest as PyPDF / Chunker
-    participant Chroma as ChromaDB
-    participant RAG as Retrieval Tool
+    autonumber
+    actor Dev as Developer
+    participant GH as GitHub Repository
+    participant GHA as GitHub Actions (CI)
+    participant Vercel as Vercel Edge (Frontend)
+    participant Render as Render Cloud (Backend)
+    actor User as End User Browser
 
-    User->>Frontend: "What roofing materials mitigate urban heat?"
-    Frontend->>Agent: Forward query
-    
-    rect rgb(30, 41, 59)
-    note right of Agent: 🧠 REASONING PHASE (Chain-of-Thought)
-    Agent->>Agent: 1. Intent Analysis: Engineering knowledge requested.
-    Agent->>Agent: 2. Gap Identification: Missing ASHRAE/EPA roofing standards.
-    Agent->>Agent: 3. Execution Plan: Search Web -> Ingest -> Query RAG.
+    Dev->>GH: git push origin main
+    par Automated CI Testing
+        GH->>GHA: Trigger CI Pipeline (.github/workflows/ci.yml)
+        GHA->>GHA: Job 1: Python 3.11 + Pytest (Backend Tests)
+        GHA->>GHA: Job 2: Node 20 + Vite Build (Frontend Build)
+    and Production Deployments via Webhooks
+        GH->>Vercel: Webhook Notification (frontend/)
+        Vercel->>Vercel: npm ci && npm run build
+        Vercel-->>Vercel: Deploy to Global Edge CDN (*.vercel.app)
+        
+        GH->>Render: Webhook Notification (render.yaml)
+        Render->>Render: Build Docker Container (Dockerfile.backend)
+        Render->>Render: Start Uvicorn ASGI Server (0.0.0.0:8000)
+        Render-->>Render: Mount 1GB Persistent Disk (/app/data)
     end
-    
-    rect rgb(15, 23, 42)
-    note right of Agent: 🛠️ EXECUTION PHASE
-    Agent->>Search: search_web_for_pdfs("site:epa.gov high albedo roofing filetype:pdf")
-    Search-->>Agent: Returns Official PDF URL
-    Agent->>Ingest: ingest_emergency_document_url(URL)
-    Ingest->>Ingest: Download & Extract text
-    Ingest->>Ingest: Split text into 1000-char chunks
-    Ingest->>Chroma: Generate embeddings & store
-    Chroma-->>Agent: Returns "Ingestion Complete"
-    Agent->>RAG: query_emergency_protocols("high albedo roofing materials")
-    RAG->>Chroma: Semantic similarity search
-    Chroma-->>RAG: Returns top 3 matching paragraphs
-    RAG-->>Agent: Inject exact text into context
-    end
-    
-    Agent->>Frontend: Generate grounded, hallucination-free response
-    Frontend-->>User: Display answer with citations
+
+    Note over User,Render: Live Application Runtime
+    User->>Vercel: 1. Request Web App (HTTPS)
+    Vercel-->>User: 2. Serve React 19 SPA Bundle
+    User->>Render: 3. Streaming Chat (POST /api/chat)
+    User->>Render: 4. Real-time Push Alerts (WSS /ws/alerts)
 ```
 
-### D. UC4: Medical Triage & Emergency Broadcast Flow
-This diagram maps how the system handles critical health escalations (User says "I don't feel well").
+### Infrastructure Summary:
 
-```mermaid
-sequenceDiagram
-    actor User
-    participant Frontend as React UI
-    participant Agent as Gemini LLM
-    participant TriageTool as display_medical_triage_advice
-    participant AlertTool as broadcast_emergency_alert
-    participant WS as WebSocket Server
-
-    User->>Frontend: "I don't feel well"
-    Frontend->>Agent: trigger_symptom_triage_ui()
-    Frontend-->>User: Renders SymptomTriageCard
-    User->>Frontend: Selects "Dizziness or fainting"
-    Frontend->>Agent: "I am experiencing: Dizziness..."
-    
-    rect rgb(30, 41, 59)
-    note right of Agent: 🩺 TRIAGE PHASE
-    Agent->>Agent: Recognizes medical request
-    Agent->>TriageTool: display_medical_triage_advice(severity, steps)
-    TriageTool-->>Frontend: Structured JSON payload
-    Frontend-->>User: Renders High-Visibility .msg-emergency Card
-    end
-
-    User->>Frontend: Clicks "CALL EMERGENCY SERVICES" button
-    Frontend->>Agent: "EMERGENCY: I am calling emergency services!"
-    
-    rect rgb(15, 23, 42)
-    note right of Agent: 🚨 EMERGENCY BROADCAST PHASE
-    Agent->>AlertTool: broadcast_emergency_alert("CRITICAL", "Medical Emergency")
-    AlertTool->>WS: Push payload to all connected clients
-    WS-->>Frontend: Emergency WS Event
-    Frontend-->>User: Flashing Red AlertBanner Overlay
-    end
-```
+| Component | Platform | Configuration & Runtime | Role |
+| :--- | :--- | :--- | :--- |
+| **Frontend SPA** | **Vercel** | Node 20 · Vite Production Build · Global Edge CDN | Delivers the React 19 UI, Leaflet vector maps, and Recharts dashboards with global low-latency caching. |
+| **Backend API** | **Render** | Docker Container (`Dockerfile.backend`) · Python 3.11 · `uv` | Runs FastAPI with Uvicorn ASGI workers for streaming responses (`/api/chat`) and WebSocket connections (`/ws/alerts`). |
+| **MCP Engine** | **Render** | Subprocess via `mcp` stdio IPC | Isolated Python subprocess executing 13 data and compute tools on behalf of the LLM. |
+| **Persistent Volume** | **Render Disk** | 1GB Persistent Disk (`/app/data`) | Persists ChromaDB vector embeddings and DuckDB spatial caching across redeploys. |
+| **Automated CI** | **GitHub Actions** | Ubuntu Runners (`.github/workflows/ci.yml`) | Validates Python pytest suites and frontend Vite builds on every push to `main`. |
