@@ -265,22 +265,37 @@ async def get_urban_heat_island_heatmap(radius: int = 2500, latitude: float = No
 @mcp.tool()
 async def get_heat_dome_footprint(latitude: float = None, longitude: float = None, location_name: str = None) -> str:
     """
-    Generates a macro-scale (2000km x 2000km) GeoJSON polygon of the Heat Dome (500hPa Blocking High) footprint.
-    Use this ONLY when the user asks about massive heat domes, blocking highs, or canicule boundaries.
+    Evaluates real 500hPa geopotential height measurements to detect and map genuine Heat Domes (blocking highs).
+    If no location is provided or user asks about the planet/Earth/globally, it scans all major global synoptic high-pressure corridors simultaneously.
+    If a specific city or region is provided, it validates whether a genuine 500hPa heat dome (>=5920 gpm) actually exists there.
+    
+    Args:
+        latitude: Optional target latitude
+        longitude: Optional target longitude
+        location_name: Optional city, country, or 'global' / 'planet' for a worldwide scan.
     """
-    resolved_name = None
-    if location_name and (latitude is None or longitude is None):
-        latitude, longitude, resolved_name = await geocoding.resolve_location_coords(location_name)
+    resolved_name = location_name
+    is_global_request = location_name and any(w in location_name.lower() for w in ["planet", "earth", "world", "global", "everywhere", "anywhere"])
+    
+    if is_global_request:
+        latitude, longitude = None, None
+    elif location_name and (latitude is None or longitude is None):
+        try:
+            latitude, longitude, resolved_name = await geocoding.resolve_location_coords(location_name)
+        except Exception:
+            latitude, longitude = None, None
         
-    result = await heat_dome.get_heat_dome_footprint(latitude, longitude)
+    result = await heat_dome.get_heat_dome_footprint(latitude, longitude, resolved_name)
     if resolved_name and "Error" not in result:
         try:
             data = json.loads(result)
             data["geocoded_location_name"] = resolved_name
-            data["geocoded_latitude"] = latitude
-            data["geocoded_longitude"] = longitude
+            if latitude is not None:
+                data["geocoded_latitude"] = latitude
+                data["geocoded_longitude"] = longitude
             result = json.dumps(data)
-        except: pass
+        except Exception:
+            pass
     return result
 
 @mcp.tool()
