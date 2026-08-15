@@ -26,9 +26,10 @@ COPY api.py ./
 # Install project dependencies system-wide
 RUN uv pip install --system -e .
 
-# Create directory for persistent databases (ChromaDB, DuckDB)
-RUN mkdir -p /app/src/heatshield/.chroma_db
-RUN touch /app/src/heatshield/.spatial_cache.duckdb
+# Create directory for persistent databases (ChromaDB, DuckDB) in 4-domain structure
+RUN mkdir -p /app/src/heatshield/knowledge/.chroma_db
+RUN mkdir -p /app/src/heatshield/spatial
+RUN touch /app/src/heatshield/spatial/.spatial_cache.duckdb
 
 # Expose FastAPI default port
 EXPOSE 8000
