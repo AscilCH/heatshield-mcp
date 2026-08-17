@@ -61,7 +61,7 @@ async def search_location(query: str) -> str:
             })
 
     # 2. Open-Meteo High-Availability Geocoding API (Fast, No 429 Rate Limits)
-    async with httpx.AsyncClient() as client:
+    async with httpx.AsyncClient(headers={'User-Agent': 'heatshield-mcp/0.1.0'}) as client:
         try:
             om_res = await client.get(
                 OPEN_METEO_GEOCODE_URL,
@@ -136,7 +136,7 @@ async def resolve_location_coords(query: str) -> tuple[float, float, str]:
             return v
 
     # 2. Try Open-Meteo Geocoding
-    async with httpx.AsyncClient() as client:
+    async with httpx.AsyncClient(headers={'User-Agent': 'heatshield-mcp/0.1.0'}) as client:
         try:
             res = await client.get(
                 OPEN_METEO_GEOCODE_URL,
@@ -186,7 +186,7 @@ async def reverse_geocode(lat: float, lon: float) -> str:
         if abs(lat - c_lat) < 0.15 and abs(lon - c_lon) < 0.15:
             return name
 
-    async with httpx.AsyncClient() as client:
+    async with httpx.AsyncClient(headers={'User-Agent': 'heatshield-mcp/0.1.0'}) as client:
         try:
             response = await client.get(
                 f"{NOMINATIM_BASE_URL}/reverse",

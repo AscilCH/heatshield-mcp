@@ -44,7 +44,7 @@ async def build_isochrone_polygon(lat: float, lon: float, max_minutes: int = 15)
     targets = [get_destination_point(lat, lon, target_distance, angle) for angle in angles]
     
     routes_data = []
-    async with httpx.AsyncClient() as client:
+    async with httpx.AsyncClient(headers={'User-Agent': 'heatshield-mcp/0.1.0'}) as client:
         tasks = []
         for t_lat, t_lon in targets:
             url = f"http://router.project-osrm.org/route/v1/foot/{lon},{lat};{t_lon},{t_lat}?overview=full&geometries=geojson"

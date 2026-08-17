@@ -57,7 +57,7 @@ async def search_cooling_spots(latitude: float, longitude: float, radius: int = 
     out center;
     """
     
-    async with httpx.AsyncClient() as client:
+    async with httpx.AsyncClient(headers={'User-Agent': 'heatshield-mcp/0.1.0'}) as client:
         elements = []
         for url in OVERPASS_URLS:
             try:

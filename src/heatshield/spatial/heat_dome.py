@@ -58,7 +58,7 @@ async def scan_global_heat_domes() -> dict:
     active_domes = []
     inactive_zones = []
     
-    async with httpx.AsyncClient() as client:
+    async with httpx.AsyncClient(headers={'User-Agent': 'heatshield-mcp/0.1.0'}) as client:
         try:
             res = await client.get(url, params=params, timeout=12.0)
             if res.status_code == 200:
@@ -170,7 +170,7 @@ async def get_heat_dome_footprint(latitude: float = None, longitude: float = Non
     peak_gpm = 0.0
     peak_temp = 0.0
     try:
-        async with httpx.AsyncClient() as client:
+        async with httpx.AsyncClient(headers={'User-Agent': 'heatshield-mcp/0.1.0'}) as client:
             res = await client.get(url, params=params, timeout=6.0)
             if res.status_code == 200:
                 d = res.json()

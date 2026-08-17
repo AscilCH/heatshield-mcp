@@ -28,7 +28,7 @@ async def get_weather_data(latitude: float, longitude: float, location_name: str
             return cached_val
 
     data = None
-    async with httpx.AsyncClient() as client:
+    async with httpx.AsyncClient(headers={'User-Agent': 'heatshield-mcp/0.1.0'}) as client:
         for attempt in range(3):
             try:
                 response = await client.get(

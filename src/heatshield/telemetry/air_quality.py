@@ -20,7 +20,7 @@ async def get_air_quality_data(latitude: float, longitude: float) -> str:
     """
     Fetch live air quality data including PM2.5, PM10, and AQI indices.
     """
-    async with httpx.AsyncClient() as client:
+    async with httpx.AsyncClient(headers={'User-Agent': 'heatshield-mcp/0.1.0'}) as client:
         try:
             response = await client.get(
                 AQI_API_URL,
@@ -63,7 +63,7 @@ async def get_air_quality_forecast(latitude: float, longitude: float, days: int 
     Returns JSON string for the frontend to graph.
     """
     import json
-    async with httpx.AsyncClient() as client:
+    async with httpx.AsyncClient(headers={'User-Agent': 'heatshield-mcp/0.1.0'}) as client:
         try:
             response = await client.get(
                 AQI_API_URL,

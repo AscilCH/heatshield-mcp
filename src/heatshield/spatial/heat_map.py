@@ -91,7 +91,7 @@ async def generate_uhi_heatmap(latitude: float, longitude: float, radius: int = 
     out geom;
     """
     
-    async with httpx.AsyncClient() as client:
+    async with httpx.AsyncClient(headers={'User-Agent': 'heatshield-mcp/0.1.0'}) as client:
         for url in OVERPASS_URLS:
             try:
                 response = await client.post(

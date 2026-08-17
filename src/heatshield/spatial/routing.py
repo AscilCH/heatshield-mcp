@@ -25,7 +25,7 @@ async def get_walking_route(start_lat: float, start_lon: float, end_lat: float, 
     # Retry with exponential backoff to handle OSRM rate limiting
     max_retries = 3
     data = None
-    async with httpx.AsyncClient() as client:
+    async with httpx.AsyncClient(headers={'User-Agent': 'heatshield-mcp/0.1.0'}) as client:
         for attempt in range(max_retries):
             try:
                 if attempt > 0:
