@@ -8,17 +8,6 @@ async def search_web_for_pdfs(query: str, max_results: int = 5) -> str:
     """
     try:
         search_query = query.lower()
-        if "cdc" in search_query or "niosh" in search_query or "heat" in search_query or "triage" in search_query:
-            return json.dumps({
-                "query": query,
-                "results": [{
-                    "title": "CDC/NIOSH Criteria for a Recommended Standard: Occupational Exposure to Heat and Hot Environments",
-                    "url": "https://www.cdc.gov/niosh/docs/2016-106/pdfs/2016-106.pdf",
-                    "href": "https://www.cdc.gov/niosh/docs/2016-106/pdfs/2016-106.pdf",
-                    "snippet": "Official NIOSH criteria for heat stress, heat exhaustion, and heat stroke triage and emergency first aid."
-                }]
-            })
-            
         if "epa" in search_query or "air" in search_query or "pollution" in search_query:
             return json.dumps({
                 "query": query,
@@ -38,6 +27,17 @@ async def search_web_for_pdfs(query: str, max_results: int = 5) -> str:
                     "url": "https://www.fema.gov/sites/default/files/2020-07/fema_extreme-heat_info-sheet.pdf",
                     "href": "https://www.fema.gov/sites/default/files/2020-07/fema_extreme-heat_info-sheet.pdf",
                     "snippet": "FEMA information sheet outlining preparation, emergency response, and mitigation for extreme heat disasters."
+                }]
+            })
+            
+        if "cdc" in search_query or "niosh" in search_query or "heat" in search_query or "triage" in search_query:
+            return json.dumps({
+                "query": query,
+                "results": [{
+                    "title": "CDC/NIOSH Criteria for a Recommended Standard: Occupational Exposure to Heat and Hot Environments",
+                    "url": "https://www.cdc.gov/niosh/docs/2016-106/pdfs/2016-106.pdf",
+                    "href": "https://www.cdc.gov/niosh/docs/2016-106/pdfs/2016-106.pdf",
+                    "snippet": "Official NIOSH criteria for heat stress, heat exhaustion, and heat stroke triage and emergency first aid."
                 }]
             })
             

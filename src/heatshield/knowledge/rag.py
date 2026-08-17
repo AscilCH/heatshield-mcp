@@ -77,6 +77,16 @@ async def ingest_document(url: str) -> str:
         })
 
     try:
+        collection = get_chroma_collection()
+        existing = collection.get(where={"source": url})
+        if existing and len(existing.get("ids", [])) > 0:
+            print(f"Document {url} already cached in ChromaDB. Skipping ingestion.")
+            return json.dumps({
+                "status": "success",
+                "message": f"Document {url} is already cached in ChromaDB.",
+                "chunks_stored": len(existing.get("ids", []))
+            })
+            
         print(f"Downloading document from {url}...")
 
         raw_text = await download_and_extract_pdf(url)
