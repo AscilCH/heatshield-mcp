@@ -72,12 +72,15 @@ async def build_isochrone_polygon(lat: float, lon: float, max_minutes: int = 15)
         (5, "#22c55e", "#16a34a")   # Green
     ]
     
+    any_mixed = False
+    
     for minutes, fill_color, border_color in time_zones:
         if minutes > max_minutes:
             continue
             
         dist_limit = minutes * 60 * walking_speed_ms
         boundary_points = []
+        approximated_count = 0
         
         for idx, coords in enumerate(routes_data):
             if coords:
@@ -96,7 +99,11 @@ async def build_isochrone_polygon(lat: float, lon: float, max_minutes: int = 15)
             else:
                 fallback_lat, fallback_lon = get_destination_point(lat, lon, dist_limit, angles[idx])
                 boundary_points.append([fallback_lon, fallback_lat])
+                approximated_count += 1
                 
+        if approximated_count > 0:
+            any_mixed = True
+            
         if len(boundary_points) > 0:
             boundary_points.append(boundary_points[0])
             
@@ -109,7 +116,8 @@ async def build_isochrone_polygon(lat: float, lon: float, max_minutes: int = 15)
             "properties": {
                 "fillColor": fill_color,
                 "color": border_color,
-                "fillOpacity": 0.4
+                "fillOpacity": 0.4,
+                "approximated_ray_count": approximated_count
             }
         })
         
@@ -124,7 +132,8 @@ async def build_isochrone_polygon(lat: float, lon: float, max_minutes: int = 15)
     return json.dumps({
         "status": "success",
         "message": f"Successfully generated a multi-layered walking isochrone map for {zones_str} minute zones. Tell the user you have highlighted the concentric walk zones on their map.",
-        "isochrone_geojson": geojson
+        "isochrone_geojson": geojson,
+        "isochrone_data_source": "mixed" if any_mixed else "fully_measured"
     }, indent=2)
 
 async def generate_walkability_isochrone(latitude: float, longitude: float, minutes: int = 15) -> str:

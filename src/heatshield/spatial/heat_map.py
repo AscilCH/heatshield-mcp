@@ -29,7 +29,8 @@ async def generate_uhi_heatmap(latitude: float, longitude: float, radius: int = 
         logging.info("DuckDB Cache HIT for Heatmap!")
         return json.dumps({
             "message": f"Generated Urban Heat Island GeoJSON Heatmap successfully for a {actual_radius}m radius.{warning_msg}",
-            "heatmap_geojson": json.loads(cached_data)
+            "heatmap_geojson": json.loads(cached_data),
+            "data_source": "live_overpass"
         })
         
     logging.info("DuckDB Cache MISS. Fetching from Overpass API...")
@@ -135,10 +136,11 @@ async def generate_uhi_heatmap(latitude: float, longitude: float, radius: int = 
                     }
                 }
             ]
-            fallback_geojson = {"type": "FeatureCollection", "features": fallback_features}
+            fallback_geojson = {"type": "FeatureCollection", "features": fallback_features, "properties": {"data_source": "fallback_synthetic"}}
             return json.dumps({
                 "message": f"Generated Urban Heat Island GeoJSON Heatmap successfully for a {actual_radius}m radius.",
-                "heatmap_geojson": fallback_geojson
+                "heatmap_geojson": fallback_geojson,
+                "data_source": "fallback_synthetic"
             })
 
     data = response.json()
@@ -224,7 +226,8 @@ async def generate_uhi_heatmap(latitude: float, longitude: float, radius: int = 
 
     feature_collection = {
         "type": "FeatureCollection",
-        "features": features
+        "features": features,
+        "properties": {"data_source": "live_overpass"}
     }
     
     # 2. Save to DuckDB Cache
@@ -232,5 +235,6 @@ async def generate_uhi_heatmap(latitude: float, longitude: float, radius: int = 
 
     return json.dumps({
         "message": f"Generated Urban Heat Island GeoJSON Heatmap successfully for a {actual_radius}m radius.{warning_msg}",
-        "heatmap_geojson": feature_collection
+        "heatmap_geojson": feature_collection,
+        "data_source": "live_overpass"
     })

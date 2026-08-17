@@ -44,37 +44,3 @@ def get_advice(heat_risk_level: str, activity_type: str) -> str:
             advice += "Limit outdoor activities, stay in the shade, and locate a nearby cooling center."
             
     return advice
-
-
-import json
-def get_occupational_heat_guidance(temperature: float, humidity_level: str = 'moderate') -> str:
-    # A simplified NIOSH heat-stress framework for demo purposes
-    if temperature >= 40:
-        risk = 'Extreme'
-        light = {'work': '20 min', 'rest': '40 min'}
-        moderate = {'work': '10 min', 'rest': '50 min'}
-        heavy = {'work': 'Avoid', 'rest': '-'}
-    elif temperature >= 35:
-        risk = 'High'
-        light = {'work': '30 min', 'rest': '30 min'}
-        moderate = {'work': '20 min', 'rest': '40 min'}
-        heavy = {'work': '10 min', 'rest': '50 min'}
-    else:
-        risk = 'Moderate'
-        light = {'work': 'Normal', 'rest': 'Normal'}
-        moderate = {'work': '45 min', 'rest': '15 min'}
-        heavy = {'work': '30 min', 'rest': '30 min'}
-    
-    data = {
-        'type': 'work_rest_guidance',
-        'feels_like': temperature,
-        'actual': temperature - 5 if humidity_level == 'high' else temperature - 2, # Fake calculation to match mockup
-        'humidity_level': humidity_level,
-        'risk_level': risk,
-        'schedule': {
-            'light': light,
-            'moderate': moderate,
-            'heavy': heavy
-        }
-    }
-    return json.dumps(data)

@@ -124,6 +124,7 @@ async def get_heat_dome_footprint(latitude: float = None, longitude: float = Non
                 "type": "Feature",
                 "geometry": {"type": "Polygon", "coordinates": [outer]},
                 "properties": {
+                    "geometry_type": "stylized_representation_not_interpolated_field",
                     "type": "heat_dome_perimeter",
                     "color": "#f43f5e",
                     "fillColor": "#f43f5e",
@@ -138,6 +139,7 @@ async def get_heat_dome_footprint(latitude: float = None, longitude: float = Non
                 "type": "Feature",
                 "geometry": {"type": "Polygon", "coordinates": [inner]},
                 "properties": {
+                    "geometry_type": "stylized_representation_not_interpolated_field",
                     "type": "heat_dome_core",
                     "color": "#e11d48",
                     "fillColor": "#e11d48",
@@ -222,6 +224,7 @@ async def get_heat_dome_footprint(latitude: float = None, longitude: float = Non
                 "type": "Feature",
                 "geometry": {"type": "Polygon", "coordinates": [outer]},
                 "properties": {
+                    "geometry_type": "stylized_representation_not_interpolated_field",
                     "type": "heat_dome_perimeter",
                     "color": "#f43f5e",
                     "fillColor": "#f43f5e",
@@ -236,6 +239,7 @@ async def get_heat_dome_footprint(latitude: float = None, longitude: float = Non
                 "type": "Feature",
                 "geometry": {"type": "Polygon", "coordinates": [inner]},
                 "properties": {
+                    "geometry_type": "stylized_representation_not_interpolated_field",
                     "type": "heat_dome_core",
                     "color": "#e11d48",
                     "fillColor": "#e11d48",

@@ -78,76 +78,6 @@ class MockResponse:
     def __init__(self, choices):
         self.choices = choices
 
-def openai_to_gemini(messages, openai_tools):
-    import json
-    gemini_tools = []
-    if openai_tools:
-        funcs = []
-        for t in openai_tools:
-            f = t['function']
-            funcs.append({
-                "name": f["name"],
-                "description": f.get("description", ""),
-                "parameters": f.get("parameters", {})
-            })
-        gemini_tools = [{"functionDeclarations": funcs}]
-
-    contents = []
-    system_instruction = None
-    
-    for m in messages:
-        if isinstance(m, dict):
-            role = m["role"]
-            content = m.get("content")
-            tool_calls = m.get("tool_calls")
-            name = m.get("name")
-        else:
-            role = m.role if hasattr(m, 'role') else 'assistant'
-            content = m.content
-            tool_calls = m.tool_calls
-            name = None
-            
-        if role == "system":
-            if not system_instruction:
-                system_instruction = {"parts": [{"text": content}]}
-            else:
-                system_instruction["parts"].append({"text": content})
-        
-        elif role == "user":
-            contents.append({"role": "user", "parts": [{"text": content}]})
-            
-        elif role == "assistant":
-            parts = []
-            if content:
-                parts.append({"text": content})
-            if tool_calls:
-                for tc in tool_calls:
-                    func_name = tc.function.name if hasattr(tc, 'function') else tc['function']['name']
-                    func_args = tc.function.arguments if hasattr(tc, 'function') else tc['function']['arguments']
-                    if isinstance(func_args, str):
-                        try:
-                            func_args = json.loads(func_args)
-                        except:
-                            func_args = {}
-                    
-                    fc_part = {"functionCall": {"name": func_name, "args": func_args}}
-                    ts = getattr(tc, 'thought_signature', None)
-                    if ts:
-                        fc_part["thoughtSignature"] = ts
-                    parts.append(fc_part)
-            contents.append({"role": "model", "parts": parts})
-            
-        elif role == "tool":
-            try:
-                content_obj = json.loads(content)
-            except:
-                content_obj = {"result": content}
-            contents.append({
-                "role": "user",
-                "parts": [{"functionResponse": {"name": name, "response": content_obj}}]
-            })
-
-    return contents, gemini_tools, system_instruction
 
 async def stream_gemini_response(messages, tools):
     import os, json
@@ -791,12 +721,16 @@ async def chat_endpoint(req: ChatRequest):
                     parsed_output = json.loads(tool_output)
                     if 'heatmap_geojson' in parsed_output:
                         feats = parsed_output['heatmap_geojson'].get('features', []) if isinstance(parsed_output['heatmap_geojson'], dict) else []
-                        parsed_output['heatmap_geojson'] = {
+                        heatmap_meta = {
                             "status": "rendered_on_canvas",
                             "features_count": len(feats),
                             "coverage_radius_m": 2500,
                             "type": "Urban Heat Island Grid"
                         }
+                        if parsed_output.get("data_source") == "fallback_synthetic":
+                            heatmap_meta["data_source"] = "fallback_synthetic"
+                            heatmap_meta["warning"] = "Data is synthetic fallback data because OSM mirrors failed. Do NOT present as live data."
+                        parsed_output['heatmap_geojson'] = heatmap_meta
                     if 'heat_dome_geojson' in parsed_output:
                         feats = parsed_output['heat_dome_geojson'].get('features', []) if isinstance(parsed_output['heat_dome_geojson'], dict) else []
                         parsed_output['heat_dome_geojson'] = {
@@ -847,7 +781,7 @@ async def chat_endpoint(req: ChatRequest):
                 full_text = ""
                 tool_calls = []
                 yield json.dumps({"type": "clear_chunk"}) + "\n"
-                async for chunk in stream_gemini_response(messages, llm_tools):
+                async for chunk in stream_gemini_response(messages, local_tools):
                     if chunk["type"] == "chunk":
                         yield json.dumps({"type": "chunk", "text": chunk["text"]}) + "\n"
                         full_text += chunk["text"]
