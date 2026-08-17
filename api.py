@@ -92,7 +92,7 @@ async def stream_gemini_response(messages, tools):
     for attempt in range(5):
         try:
             stream = await client.chat.completions.create(
-                model="gemini-3.5-flash-lite",
+                model="gemini-3.5-flash",
                 messages=messages,
                 tools=tools,
                 stream=True
@@ -664,7 +664,20 @@ async def chat_endpoint(req: ChatRequest):
                             if heat_dome_geojson is None:
                                 heat_dome_geojson = dome_res['heat_dome_geojson']
                             else:
-                                heat_dome_geojson['features'].extend(dome_res['heat_dome_geojson'].get('features', []))
+                                import math
+                                for new_feat in dome_res['heat_dome_geojson'].get('features', []):
+                                    is_duplicate = False
+                                    if new_feat['geometry']['type'] == 'Polygon':
+                                        new_coord = new_feat['geometry']['coordinates'][0][0] # [lon, lat]
+                                        for existing_feat in heat_dome_geojson['features']:
+                                            if existing_feat['geometry']['type'] == 'Polygon':
+                                                ext_coord = existing_feat['geometry']['coordinates'][0][0]
+                                                dist = math.hypot(new_coord[0] - ext_coord[0], new_coord[1] - ext_coord[1])
+                                                if dist < 5.0: # ~500km threshold
+                                                    is_duplicate = True
+                                                    break
+                                    if not is_duplicate:
+                                        heat_dome_geojson['features'].append(new_feat)
                     except:
                         pass
                         
