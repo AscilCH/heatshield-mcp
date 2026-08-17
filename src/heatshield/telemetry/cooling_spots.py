@@ -114,10 +114,10 @@ async def search_cooling_spots(latitude: float, longitude: float, radius: int = 
             
             w_dist, w_time = walking_infos[i]
             if w_dist != -1 and w_time != -1:
-                mins = max(1, w_time // 60) # Ensure it doesn't say 0 minutes or negative
-                results.append(f"- {name} ({spot_type}) - True Walk: {mins} minutes ({w_dist}m)")
+                mins = max(1, w_time // 60)
+                results.append(f"- {name} ({spot_type}) - True Walk: {mins} minutes ({w_dist}m) [Coords: {s_lat}, {s_lon}]")
             else:
-                results.append(f"- {name} ({spot_type}) - {int(dist_hav)}m away (Direct line)")
+                results.append(f"- {name} ({spot_type}) - {int(dist_hav)}m away (Direct line) [Coords: {s_lat}, {s_lon}]")
             
         import json
         return json.dumps({

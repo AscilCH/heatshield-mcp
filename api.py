@@ -502,13 +502,6 @@ async def chat_endpoint(req: ChatRequest):
                                     msg_append = f"has_meaningful_data: false. WARNING (NO DATA): {parsed_for_msg.get('message', 'Zero features found.')}"
                                 elif "summary" in parsed_for_msg:
                                     msg_append = parsed_for_msg["summary"]
-                                    if "elements" in parsed_for_msg and len(parsed_for_msg["elements"]) > 0:
-                                        msg_append += "\nCoordinates of nearest spots for routing: "
-                                        for el in parsed_for_msg["elements"][:3]:
-                                            n = el.get('tags', {}).get('name', 'Cooling Spot')
-                                            lat = el.get('lat') or el.get('center', {}).get('lat')
-                                            lon = el.get('lon') or el.get('center', {}).get('lon')
-                                            msg_append += f"[{n} at {lat}, {lon}], "
                                 elif "message" in parsed_for_msg:
                                     msg_append = parsed_for_msg["message"]
                             except Exception:
