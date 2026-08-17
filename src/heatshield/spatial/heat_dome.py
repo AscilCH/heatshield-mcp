@@ -57,6 +57,7 @@ async def scan_global_heat_domes() -> dict:
     
     active_domes = []
     inactive_zones = []
+    error_msg = None
     
     async with httpx.AsyncClient(headers={'User-Agent': 'heatshield-mcp/0.1.0'}) as client:
         try:
@@ -87,12 +88,17 @@ async def scan_global_heat_domes() -> dict:
                         active_domes.append(info)
                     else:
                         inactive_zones.append(info)
+            else:
+                error_msg = f"Upstream API returned HTTP {res.status_code}"
+                logging.error(f"Global heat dome scan failed: {error_msg}")
         except Exception as exc:
-            logging.error(f"Failed global heat dome scan: {exc}")
+            error_msg = f"Request timed out or failed: {str(exc)}"
+            logging.error(f"Global heat dome scan failed: {error_msg}")
             
     return {
         "active_domes": active_domes,
-        "inactive_zones": inactive_zones
+        "inactive_zones": inactive_zones,
+        "error": error_msg
     }
 
 async def get_heat_dome_footprint(latitude: float = None, longitude: float = None, location_name: str = None) -> str:
@@ -105,6 +111,14 @@ async def get_heat_dome_footprint(latitude: float = None, longitude: float = Non
     # 1. If global scan requested or no specific coords
     if latitude is None or longitude is None:
         scan_results = await scan_global_heat_domes()
+        
+        if scan_results.get("error"):
+            return json.dumps({
+                "status": "TELEMETRY_ERROR",
+                "message": f"Global telemetry scan failed. Cannot confidently detect heat domes right now. {scan_results['error']}",
+                "has_meaningful_data": False
+            })
+            
         active = scan_results["active_domes"]
         
         if not active:
@@ -112,7 +126,8 @@ async def get_heat_dome_footprint(latitude: float = None, longitude: float = Non
                 "status": "NO_GLOBAL_HEAT_DOME_DETECTED",
                 "message": "Currently, no global 500hPa subtropical ridge exceeds the extreme heat dome threshold (5920 gpm). Zonal atmospheric flow dominates.",
                 "active_heat_domes_count": 0,
-                "heat_dome_geojson": None
+                "heat_dome_geojson": None,
+                "has_meaningful_data": True
             })
             
         features = []
