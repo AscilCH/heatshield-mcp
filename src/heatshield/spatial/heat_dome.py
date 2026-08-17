@@ -18,25 +18,49 @@ GLOBAL_SYNOPTIC_CENTERS = [
 
 HEAT_DOME_THRESHOLD_GPM = 5920.0 # Standard meteorological threshold for 500hPa subtropical high anomaly
 
-def generate_isobar_polygon(center_lat: float, center_lon: float, r_base: float, tilt_deg: float, num_pts: int = 64) -> list:
+import random
+
+def generate_isobar_polygon(center_lat: float, center_lon: float, r_base: float, tilt_deg: float, num_pts: int = 72) -> list:
     """
     Generates realistic Rossby wave harmonic isobar coordinates around a physical atmospheric center.
+    Uses seeded pseudo-random harmonics to make each atmospheric block look uniquely organic and asymmetrical.
     """
     coords = []
     tilt_rad = math.radians(tilt_deg)
+    
+    # Use the center coordinates to seed a stable random generator so the shape is consistent but unique
+    rng = random.Random(int(center_lat * 1000) + int(center_lon * 1000))
+    
+    # Randomize harmonic amplitudes and phase shifts for organic irregularity
+    a1, p1 = rng.uniform(0.20, 0.35), rng.uniform(0, 2 * math.pi)
+    a2, p2 = rng.uniform(0.08, 0.18), rng.uniform(0, 2 * math.pi)
+    a3, p3 = rng.uniform(0.03, 0.08), rng.uniform(0, 2 * math.pi)
+    a4, p4 = rng.uniform(0.01, 0.04), rng.uniform(0, 2 * math.pi)
+    
+    # Atmospheric blocking highs are usually stretched E-W and compressed N-S
+    stretch_lon = rng.uniform(1.3, 1.7)
+    squish_lat = rng.uniform(0.6, 0.8)
+    
     for i in range(num_pts + 1):
         angle = 2 * math.pi * (i / num_pts)
+        
+        # Base harmonic generation
         r = r_base * (
             1.0 
-            + 0.25 * math.cos(2 * (angle - tilt_rad)) 
-            + 0.12 * math.sin(3 * angle + 0.5) 
-            + 0.08 * math.cos(5 * angle)
-            + 0.04 * math.sin(7 * angle)
+            + a1 * math.cos(2 * (angle - tilt_rad) + p1) 
+            + a2 * math.sin(3 * angle + p2) 
+            + a3 * math.cos(4 * angle + p3)
+            + a4 * math.sin(7 * angle + p4)
         )
+        
         cos_lat = max(0.2, math.cos(math.radians(center_lat)))
-        pt_lon = center_lon + (r * math.cos(angle) / cos_lat)
-        pt_lat = center_lat + (r * math.sin(angle) * 0.85) # Squish latitudinally to look like a mid-latitude ridge
+        pt_lon = center_lon + (r * math.cos(angle) * stretch_lon / cos_lat)
+        pt_lat = center_lat + (r * math.sin(angle) * squish_lat)
+        
         coords.append([round(pt_lon, 4), round(pt_lat, 4)])
+        
+    # Ensure seamless closure
+    coords[-1] = coords[0]
     return coords
 
 async def scan_global_heat_domes() -> dict:
@@ -97,23 +121,8 @@ async def scan_global_heat_domes() -> dict:
             logging.warning(f"Global heat dome scan failed: {error_msg}. Using fallback mock data for demo stability.")
 
     if error_msg:
-        # Emergency Fallback Mock Data for Demo Stability when API quota is exhausted
-        mock_peaks = {
-            "us_plains": 5900.0, "us_southwest": 5930.0, "arabian_gulf": 5940.0,
-            "sahara_med": 5897.0, "iberian_dome": 5925.0, "indus_valley": 5850.0, "east_asia": 5870.0
-        }
-        for center in GLOBAL_SYNOPTIC_CENTERS:
-            info = {
-                "id": center["id"], "name": center["name"], "region": center["region"],
-                "center_lat": center["lat"], "center_lon": center["lon"],
-                "peak_gpm": mock_peaks.get(center["id"], 5800.0), "peak_temp_c": 35.0,
-                "is_active": mock_peaks.get(center["id"], 5800.0) >= 5880.0
-            }
-            if info["is_active"]:
-                active_domes.append(info)
-            else:
-                inactive_zones.append(info)
-        error_msg = None # Clear error to proceed with fallback data
+        # User requested to remove hardcoded fallbacks and debug the true API implementation.
+        pass
 
     return {
         "active_domes": active_domes,
@@ -213,12 +222,9 @@ async def get_heat_dome_footprint(latitude: float = None, longitude: float = Non
                 temp_list = [t for t in d.get("hourly", {}).get("temperature_2m", []) if t is not None]
                 if gpm_list: peak_gpm = max(gpm_list)
                 if temp_list: peak_temp = max(temp_list)
-    except Exception:
-        # Emergency Fallback Mock Data for Demo Stability when API quota is exhausted
-        if "sfax" in (location_name or "").lower() or "tunis" in (location_name or "").lower():
-            peak_gpm, peak_temp = 5900.0, 36.0
-        else:
-            peak_gpm, peak_temp = 5800.0, 22.0
+    except Exception as exc:
+        logging.warning(f"Local heat dome query failed: {exc}")
+        # Let the real API failure propagate or result in 0.0 readings so it can be debugged
         
     is_active = peak_gpm >= HEAT_DOME_THRESHOLD_GPM
     
