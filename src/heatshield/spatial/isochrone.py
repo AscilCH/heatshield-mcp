@@ -90,11 +90,20 @@ async def build_isochrone_polygon(lat: float, lon: float, max_minutes: int = 15)
                     p1_lon, p1_lat = coords[i-1]
                     p2_lon, p2_lat = coords[i]
                     segment_dist = haversine(p1_lat, p1_lon, p2_lat, p2_lon)
+                    
                     if cumulative_dist + segment_dist >= dist_limit:
-                        boundary_point = coords[i]
+                        # We must interpolate exactly along this segment so the 5/10/15 min zones don't snap to the same coordinate!
+                        remaining = dist_limit - cumulative_dist
+                        ratio = remaining / segment_dist if segment_dist > 0 else 0
+                        
+                        interp_lon = p1_lon + (p2_lon - p1_lon) * ratio
+                        interp_lat = p1_lat + (p2_lat - p1_lat) * ratio
+                        boundary_point = [interp_lon, interp_lat]
                         break
+                        
                     cumulative_dist += segment_dist
-                    boundary_point = coords[i]
+                    boundary_point = [p2_lon, p2_lat]
+                    
                 boundary_points.append(boundary_point)
             else:
                 fallback_lat, fallback_lon = get_destination_point(lat, lon, dist_limit, angles[idx])
