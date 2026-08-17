@@ -304,7 +304,7 @@ async def get_walking_route(start_lat: float = None, start_lon: float = None, en
     Calculates a precise walking route between two coordinates.
     Use this ONLY when the user EXPLICITLY asks for directions or a route to a specific cooling spot.
     DO NOT use this to just 'connect' multiple cooling spots together.
-    If you don't know the exact coordinates of the destination, use end_location_name.
+    CRITICAL: When routing to a cooling spot found via find_cooling_spots, you MUST extract and provide the exact end_lat and end_lon from the [Coords: lat, lon] string. DO NOT use end_location_name for cooling spots, or it will geocode to the wrong location!
     """
     if start_location_name and (start_lat is None or start_lon is None):
         start_lat, start_lon, _ = await geocoding.resolve_location_coords(start_location_name)
