@@ -299,20 +299,15 @@ async def get_heat_dome_footprint(latitude: float = None, longitude: float = Non
     return result
 
 @mcp.tool()
-async def get_walking_route(start_lat: float = None, start_lon: float = None, end_lat: float = None, end_lon: float = None, start_location_name: str = None, end_location_name: str = None) -> str:
+async def get_walking_route(start_lat: float = None, start_lon: float = None, end_lat: float = None, end_lon: float = None) -> str:
     """
-    Calculates a precise walking route between two coordinates.
-    Use this ONLY when the user EXPLICITLY asks for directions or a route to a specific cooling spot.
-    DO NOT use this to just 'connect' multiple cooling spots together.
-    CRITICAL: When routing to a cooling spot found via find_cooling_spots, you MUST extract and provide the exact end_lat and end_lon from the [Coords: lat, lon] string. DO NOT use end_location_name for cooling spots, or it will geocode to the wrong location!
+    Calculates a precise walking route between two coordinate pairs using OSRM.
+    Single responsibility: this tool ONLY routes. It does NOT discover or geocode.
+    You MUST provide exact lat/lon for both start and end points.
+    To get the end coordinates, first call find_cooling_spots and extract lat/lon from the results.
     """
-    if start_location_name and (start_lat is None or start_lon is None):
-        start_lat, start_lon, _ = await geocoding.resolve_location_coords(start_location_name)
-    if end_location_name and (end_lat is None or end_lon is None):
-        end_lat, end_lon, _ = await geocoding.resolve_location_coords(end_location_name)
-        
     if None in [start_lat, start_lon, end_lat, end_lon]:
-        return json.dumps({"error": "Missing coordinates for walking route. Please provide valid start and end points."})
+        return json.dumps({"error": "Missing coordinates. You must provide start_lat, start_lon, end_lat, and end_lon. Use find_cooling_spots first to get the destination coordinates."})
         
     return await routing.get_walking_route(start_lat, start_lon, end_lat, end_lon)
 
