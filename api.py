@@ -285,7 +285,8 @@ async def chat_endpoint(req: ChatRequest):
     if req.latitude is not None and req.longitude is not None:
         system_prompt += (
             f"\nUSER CONTEXT: The user's device is currently at Latitude {req.latitude}, Longitude {req.longitude}. "
-            f"If they ask for local or nearby advice, pass these exact coordinates to your tools."
+            f"If they ask for local or nearby advice without specifying a city, pass these exact coordinates to your tools. "
+            f"HOWEVER, if they EXPLICITLY mention a specific city or region in their message (e.g., 'in Phoenix'), you MUST prioritize and geocode the city they typed instead of using these device coordinates."
         )
     else:
         system_prompt += (
