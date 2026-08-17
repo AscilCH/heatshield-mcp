@@ -65,7 +65,7 @@ async def search_cooling_spots(latitude: float, longitude: float, radius: int = 
                     url,
                     data={"data": query},
                     headers={"User-Agent": "heatshield-mcp/0.1.0 (GeoAI Research)"},
-                    timeout=30.0
+                    timeout=5.0
                 )
                 response.raise_for_status()
                 data = response.json()
