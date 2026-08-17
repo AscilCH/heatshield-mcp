@@ -264,10 +264,10 @@ async def chat_endpoint(req: ChatRequest):
         "CORE OPERATIONAL PHILOSOPHY:\n"
         "1. AUTONOMOUS PROBLEM SOLVING: Do not wait for rigid commands. Deeply analyze the user's prompt, identify their underlying goal (transit, work safety, thermal comparison, symptom triage, shade planning), and intelligently compose the best sequence of tools from your toolbox to solve it thoroughly.\n"
         "2. VISUAL-FIRST & CANVAS PROACTIVITY: The frontend is a living interactive map and visual canvas. Always make your insights visual and interactive whenever beneficial:\n"
-        "   - Comparing cities or regions? Always open the side-by-side comparative matrix (`open_comparison_view`) and include a clean Markdown data table at the top of your response.\n"
+        "   - Comparing cities or regions? Always open the side-by-side comparative matrix (`open_comparison_view`) and include a clean Markdown data table at the top of your response. If the user's request mentions maps, heatmaps, UHI, or cooling spots, you MUST ALSO call submit_geospatial_tasks with the relevant operation(s) for EVERY location being compared in the SAME response — do not consider the comparison complete with only a text table if spatial visualization was requested.\n"
         "   - Spatial routes, walking paths, or zones? Draw the corridors/polygons on the map (`get_walking_route`, `draw_map_layer`, `submit_geospatial_tasks`) and smoothly fly the camera (`set_camera_view`) to the focal area.\n"
         "   - Multi-day heat or air quality progressions? Open dynamic chart panels (`open_chart_panel`) or forecast cards.\n"
-        "3. RIGOROUS DATA & COMPUTE PIPELINE: Never estimate or hallucinate mathematical numbers inline. First fetch real environmental telemetry (`get_weather_and_heat_risk`, `get_air_quality_forecast`), then pass them into pure deterministic compute tools (`compute_wbgt`, `compute_work_rest_cycle`, `compute_heat_risk`).\n"
+        "3. RIGOROUS DATA & COMPUTE PIPELINE: Never estimate or hallucinate mathematical numbers inline. First fetch real environmental telemetry (`get_weather_and_heat_risk`, `get_air_quality_forecast`), then pass them into pure deterministic compute tools (`compute_wbgt`, `compute_work_rest_cycle`, `compute_heat_risk`). If any tool result includes has_meaningful_data: false or a zero feature/element count, you MUST tell the user real data wasn't available for that location instead of describing hypothetical or remembered characteristics of the area.\n"
         "4. OCCUPATIONAL & MEDICAL COMPLIANCE INTELLIGENCE: When the user asks about workplace heat safety, outdoor construction/concrete pouring, work-rest schedules, OSHA/NIOSH compliance, or safety at a specific high temperature (e.g. 40°C, 42°C):\n"
         "   - Do NOT simply query generic live weather for a random location. Focus directly on the occupational compliance scenario!\n"
         "   - Call `compute_wbgt` and `get_occupational_heat_guidance` with the specified workload (Heavy for concrete/roofing/digging) and temperature to calculate the strict NIOSH work/rest ratio and hydration rule.\n"
@@ -490,7 +490,23 @@ async def chat_endpoint(req: ChatRequest):
                         tid = res["task_id"]
                         if res["status"] == "success":
                             yield json.dumps({"type": "partial_map_update", "status": "success", "task_id": tid, "data": res["data"]}) + "\n"
-                            combined_text_out.append(f"✅ {tid}: Success")
+                            
+                            # Safely extract the message/warning to feed back to the LLM
+                            msg_append = "Success"
+                            try:
+                                parsed_for_msg = json.loads(res["data"])
+                                print("DEBUG PARSED_FOR_MSG:", parsed_for_msg.keys())
+                                if "has_meaningful_data" in parsed_for_msg and not parsed_for_msg["has_meaningful_data"]:
+                                    msg_append = f"has_meaningful_data: false. WARNING (NO DATA): {parsed_for_msg.get('message', 'Zero features found.')}"
+                                elif "message" in parsed_for_msg:
+                                    msg_append = parsed_for_msg["message"]
+                                print("DEBUG MSG_APPEND:", msg_append)
+                            except Exception as e:
+                                print("DEBUG JSON LOADS FAILED:", e)
+                                pass
+                                
+                            combined_text_out.append(f"✅ {tid}: {msg_append}")
+                            
                             # Merge into main trackers so LLM sees it
                             try:
                                 parsed = json.loads(res["data"])
@@ -730,6 +746,8 @@ async def chat_endpoint(req: ChatRequest):
                         if parsed_output.get("data_source") == "fallback_synthetic":
                             heatmap_meta["data_source"] = "fallback_synthetic"
                             heatmap_meta["warning"] = "Data is synthetic fallback data because OSM mirrors failed. Do NOT present as live data."
+                        if "has_meaningful_data" in parsed_output:
+                            heatmap_meta["has_meaningful_data"] = parsed_output["has_meaningful_data"]
                         parsed_output['heatmap_geojson'] = heatmap_meta
                     if 'heat_dome_geojson' in parsed_output:
                         feats = parsed_output['heat_dome_geojson'].get('features', []) if isinstance(parsed_output['heat_dome_geojson'], dict) else []

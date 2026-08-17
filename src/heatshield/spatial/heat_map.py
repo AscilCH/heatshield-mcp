@@ -27,10 +27,22 @@ async def generate_uhi_heatmap(latitude: float, longitude: float, radius: int = 
     cached_data = get_cached_heatmap(latitude, longitude, actual_radius)
     if cached_data:
         logging.info("DuckDB Cache HIT for Heatmap!")
+        parsed_cache = json.loads(cached_data)
+        features = parsed_cache.get("features", [])
+        
+        if not features:
+            return json.dumps({
+                "message": f"Query succeeded, but zero heat-relevant features (buildings, roads, parks, water) were found within {actual_radius}m — this location likely has sparse or unmapped OpenStreetMap coverage. Do NOT present a thermal analysis based on this data; tell the user real UHI data isn't available for this area.",
+                "heatmap_geojson": parsed_cache,
+                "data_source": "live_overpass",
+                "has_meaningful_data": False
+            })
+            
         return json.dumps({
             "message": f"Generated Urban Heat Island GeoJSON Heatmap successfully for a {actual_radius}m radius.{warning_msg}",
-            "heatmap_geojson": json.loads(cached_data),
-            "data_source": "live_overpass"
+            "heatmap_geojson": parsed_cache,
+            "data_source": "live_overpass",
+            "has_meaningful_data": True
         })
         
     logging.info("DuckDB Cache MISS. Fetching from Overpass API...")
@@ -227,14 +239,23 @@ async def generate_uhi_heatmap(latitude: float, longitude: float, radius: int = 
     feature_collection = {
         "type": "FeatureCollection",
         "features": features,
-        "properties": {"data_source": "live_overpass"}
+        "properties": {"data_source": "live_overpass", "feature_count": len(features)}
     }
     
     # 2. Save to DuckDB Cache
     set_cached_heatmap(latitude, longitude, actual_radius, feature_collection)
 
+    if not features:
+        return json.dumps({
+            "message": f"Query succeeded, but zero heat-relevant features (buildings, roads, parks, water) were found within {actual_radius}m — this location likely has sparse or unmapped OpenStreetMap coverage. Do NOT present a thermal analysis based on this data; tell the user real UHI data isn't available for this area.",
+            "heatmap_geojson": feature_collection,
+            "data_source": "live_overpass",
+            "has_meaningful_data": False
+        })
+
     return json.dumps({
         "message": f"Generated Urban Heat Island GeoJSON Heatmap successfully for a {actual_radius}m radius.{warning_msg}",
         "heatmap_geojson": feature_collection,
-        "data_source": "live_overpass"
+        "data_source": "live_overpass",
+        "has_meaningful_data": True
     })
