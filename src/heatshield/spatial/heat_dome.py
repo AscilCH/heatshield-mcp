@@ -18,7 +18,7 @@ GLOBAL_SYNOPTIC_CENTERS = [
 
 HEAT_DOME_THRESHOLD_GPM = 5920.0 # Standard meteorological threshold for 500hPa subtropical high anomaly
 
-def generate_isobar_polygon(center_lat: float, center_lon: float, r_base: float, tilt_deg: float, num_pts: int = 48) -> list:
+def generate_isobar_polygon(center_lat: float, center_lon: float, r_base: float, tilt_deg: float, num_pts: int = 64) -> list:
     """
     Generates realistic Rossby wave harmonic isobar coordinates around a physical atmospheric center.
     """
@@ -28,13 +28,14 @@ def generate_isobar_polygon(center_lat: float, center_lon: float, r_base: float,
         angle = 2 * math.pi * (i / num_pts)
         r = r_base * (
             1.0 
-            + 0.20 * math.cos(2 * (angle - tilt_rad)) 
-            + 0.07 * math.sin(3 * angle) 
-            + 0.03 * math.cos(5 * angle)
+            + 0.25 * math.cos(2 * (angle - tilt_rad)) 
+            + 0.12 * math.sin(3 * angle + 0.5) 
+            + 0.08 * math.cos(5 * angle)
+            + 0.04 * math.sin(7 * angle)
         )
         cos_lat = max(0.2, math.cos(math.radians(center_lat)))
         pt_lon = center_lon + (r * math.cos(angle) / cos_lat)
-        pt_lat = center_lat + (r * math.sin(angle) * 0.95)
+        pt_lat = center_lat + (r * math.sin(angle) * 0.85) # Squish latitudinally to look like a mid-latitude ridge
         coords.append([round(pt_lon, 4), round(pt_lat, 4)])
     return coords
 
@@ -207,13 +208,11 @@ async def get_heat_dome_footprint(latitude: float = None, longitude: float = Non
             min_dist = dist
             nearest_center = c
 
-    # If this location is part of a broad synoptic ridge (within 1200km of a known center)
+    # Center the heat dome exactly over the queried location so the UI feels responsive
     anchor_lat = latitude
     anchor_lon = longitude
     tilt = 30
-    if nearest_center and min_dist < 12.0: # ~1300km
-        anchor_lat = (latitude * 0.4 + nearest_center["lat"] * 0.6)
-        anchor_lon = (longitude * 0.4 + nearest_center["lon"] * 0.6)
+    if nearest_center and min_dist < 12.0:
         tilt = nearest_center["tilt_deg"]
 
     if not is_active and peak_gpm < 5880.0:
