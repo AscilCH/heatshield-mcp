@@ -837,6 +837,10 @@ async def chat_endpoint(req: ChatRequest):
                 full_text = ""
                 tool_calls = []
                 yield json.dumps({"type": "clear_chunk"}) + "\n"
+                
+                # Anti-Burst Rate Limiting: Prevent slamming the new 20 RPM Gemini Free Tier
+                await asyncio.sleep(3.5)
+                
                 async for chunk in stream_gemini_response(messages, local_tools):
                     if chunk["type"] == "chunk":
                         yield json.dumps({"type": "chunk", "text": chunk["text"]}) + "\n"
