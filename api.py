@@ -92,7 +92,7 @@ async def stream_gemini_response(messages, tools):
     for attempt in range(5):
         try:
             stream = await client.chat.completions.create(
-                model="gemini-3.5-flash",
+                model="gemini-3.5-flash-lite",
                 messages=messages,
                 tools=tools,
                 stream=True
