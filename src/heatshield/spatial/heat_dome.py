@@ -208,11 +208,13 @@ async def get_heat_dome_footprint(latitude: float = None, longitude: float = Non
             min_dist = dist
             nearest_center = c
 
-    # Center the heat dome exactly over the queried location so the UI feels responsive
+    # Use the authentic meteorological synoptic center for this region to avoid faking data
     anchor_lat = latitude
     anchor_lon = longitude
     tilt = 30
     if nearest_center and min_dist < 12.0:
+        anchor_lat = nearest_center["lat"]
+        anchor_lon = nearest_center["lon"]
         tilt = nearest_center["tilt_deg"]
 
     if not is_active and peak_gpm < 5880.0:
