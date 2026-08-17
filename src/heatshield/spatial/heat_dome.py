@@ -212,7 +212,7 @@ async def get_heat_dome_footprint(latitude: float = None, longitude: float = Non
     anchor_lat = latitude
     anchor_lon = longitude
     tilt = 30
-    if nearest_center and min_dist < 12.0:
+    if nearest_center and min_dist < 25.0: # Increased to ~2700km to cover broad synoptic ridges
         anchor_lat = nearest_center["lat"]
         anchor_lon = nearest_center["lon"]
         tilt = nearest_center["tilt_deg"]
