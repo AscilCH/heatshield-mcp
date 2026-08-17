@@ -341,7 +341,11 @@ async def chat_endpoint(req: ChatRequest):
     messages.extend(bounded_history)
     messages.append({"role": "user", "content": req.message})
     
-    print(f"\n{'='*50}\n[UC TRACE] User Message: '{req.message}'\n[UC TRACE] Device Coordinates: Lat {req.latitude}, Lon {req.longitude}\n{'='*50}")
+    print(f"\n==================================================")
+    print(f"[ANALYTICS] 💬 NEW USER PROMPT RECEIVED!")
+    print(f"[ANALYTICS] Message: '{req.message}'")
+    print(f"[ANALYTICS] Context: Lat {req.latitude}, Lon {req.longitude}")
+    print(f"==================================================\n")
     
     async def event_generator():
         # PromptGuard Pre-Flight Security Check
@@ -464,8 +468,13 @@ async def chat_endpoint(req: ChatRequest):
                     continue
                 
                 for tool_args in parsed_args_list:
+                    print(f"\n==================================================")
+                    print(f"[ANALYTICS] 🛠️ AI TOOL ACTIVATED!")
+                    print(f"[ANALYTICS] Tool Name: {tool_name}")
+                    print(f"[ANALYTICS] Arguments: {json.dumps(tool_args)}")
+                    print(f"==================================================\n")
+                    
                     trace_msg = f"[UC TRACE] 🤖 LLM decided to call tool: {tool_name} with args: {json.dumps(tool_args)}"
-                    print(trace_msg)
                     yield json.dumps({"type": "trace", "message": trace_msg}) + "\n"
                     
                     # YIELD TOOL CALL EVENT TO FRONTEND
