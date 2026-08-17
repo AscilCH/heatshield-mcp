@@ -795,7 +795,7 @@ async def chat_endpoint(req: ChatRequest):
             })
             messages.append({
                 "role": "user",
-                "content": f"Telemetry and computation results from your tool calls:{tool_results_text}\nPlease provide your comprehensive, direct, first-person safety analysis and recommendations to the user based on these results."
+                "content": f"Telemetry and computation results from your tool calls:{tool_results_text}\nIf you need more data (e.g. searching the pre-loaded ChromaDB protocols), call the necessary tools. Otherwise, please provide your comprehensive, direct, first-person safety analysis and recommendations to the user based on these results."
             })
                 
             try:
