@@ -22,6 +22,7 @@ import CitizenDashboard from './components/dashboard/CitizenDashboard'
 import PlannerDashboard from './components/dashboard/PlannerDashboard'
 import CheckInView from './components/dashboard/CheckInView'
 import MarkdownRenderer from './components/chat/MarkdownRenderer'
+import ComparisonWidget from './components/cards/ComparisonWidget'
 
 import './App.css'
 
@@ -710,6 +711,11 @@ function App() {
         )}
 
         <div className="forecast-overlay-container">
+          {canvasComparisonData && (
+            <div className="forecast-overlay comparison-overlay" style={{ width: '100%' }}>
+              <ComparisonWidget data={canvasComparisonData} onClose={() => setCanvasComparisonData(null)} />
+            </div>
+          )}
           {forecastData && (
             <>
               <div className="forecast-overlay" style={{ width: '100%' }}>
