@@ -827,12 +827,12 @@ async def chat_endpoint(req: ChatRequest):
         
         # Guard: if the final text is empty or leaked an internal scaffolding string, generate a rich telemetry summary
         if not final_text or final_text.startswith("I have executed the following tools:") or final_text.startswith("I called the following tools:"):
-            loc = (current_weather_data and current_weather_data.get("location")) or "Djerba"
-            temp = (current_weather_data and current_weather_data.get("temperature_celsius")) or 29
+            loc = (current_weather_data and current_weather_data.get("location")) or "Your Location"
+            temp = (current_weather_data and current_weather_data.get("temperature_celsius")) or "N/A"
             feels = (current_weather_data and current_weather_data.get("feels_like_celsius")) or temp
-            risk = (current_weather_data and current_weather_data.get("heat_risk_level")) or "EXTREME"
-            hum = (current_weather_data and current_weather_data.get("humidity_percent")) or 80
-            uv = (current_weather_data and current_weather_data.get("uv_index")) or 8.2
+            risk = (current_weather_data and current_weather_data.get("heat_risk_level")) or "UNKNOWN"
+            hum = (current_weather_data and current_weather_data.get("humidity_percent")) or "N/A"
+            uv = (current_weather_data and current_weather_data.get("uv_index")) or "N/A"
             
             final_text = (
                 f"### 🌡️ Live Heat Risk & Environmental Assessment for **{loc}**\n\n"
