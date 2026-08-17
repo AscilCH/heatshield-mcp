@@ -75,6 +75,8 @@ class PromptGuard:
         # Programming & Code
         r"write\s+(me\s+)?(a\s+)?(python|javascript|c\+\+|java|rust|go|sql|html|css|php|ruby)\s+(script|code|program|function|class)",
         r"(how\s+to\s+code|debug\s+this|quicksort|binary\s+search|leetcode|hackerrank)",
+        r"(debug|fix|review|refactor|optimize)\s+(my|this|the)\s+(code|component|function|script|app)",
+        r"(import\s+react|def\s+[a-zA-Z_]+\(|function\s*\()",
         # Creative Writing & Entertainment
         r"write\s+(me\s+)?a\s+(poem|story|song|essay|haiku|rap|novel)",
         r"tell\s+me\s+a\s+(joke|riddle|funny\s+story)",
