@@ -781,8 +781,8 @@ async def chat_endpoint(req: ChatRequest):
                             "nearest_spots": [
                                 {
                                     "name": e.get('tags', {}).get('name', 'Cooling Spot'),
-                                    "lat": e.get('lat'),
-                                    "lon": e.get('lon')
+                                    "lat": e.get('lat') or e.get('center', {}).get('lat'),
+                                    "lon": e.get('lon') or e.get('center', {}).get('lon')
                                 } 
                                 for e in els[:3]
                             ] if els else []
