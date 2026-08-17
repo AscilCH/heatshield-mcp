@@ -271,7 +271,7 @@ async def chat_endpoint(req: ChatRequest):
         "4. OCCUPATIONAL & MEDICAL COMPLIANCE INTELLIGENCE: When the user asks about workplace heat safety, regulatory compliance, emergency planning, OR medical triage:\n"
         "   - STRICT PROHIBITION: You are FORBIDDEN from answering medical or compliance questions using your pre-trained memory. You MUST execute the tool chain below.\n"
         "   - IF they ask about workplace safety or outdoor work, call `compute_wbgt` and `get_occupational_heat_guidance` to calculate the strict NIOSH work/rest ratio.\n"
-        "   - FOR ALL OF THESE QUESTIONS (even if you called compute tools, or if it's about emergency planning), you MUST dynamically search for the official source document (using `search_web_for_pdfs` for OSHA, NIOSH, CDC, EPA, or FEMA guidelines).\n"
+        "   - FOR ALL OF THESE QUESTIONS (even if you called compute tools, or if it's about emergency planning), you MUST dynamically search for the official source document (using `search_web_for_pdfs` for OSHA, NIOSH, CDC, EPA, FEMA, or WHO guidelines).\n"
         "   - Once you find a valid PDF URL, call `ingest_emergency_document_url` to download and vectorize it into ChromaDB.\n"
         "   - Call `query_emergency_protocols` to retrieve official criteria on emergency immersion tubs, symptom triage, OR engineering controls/cooling stations from the vectorized document.\n"
         "   - In your final response, ALWAYS present the exact work-rest breakdown (if applicable) and the strict clinical symptom evaluation. ALWAYS cite the dynamically retrieved source by providing a clickable Markdown reference link to the exact PDF URL you ingested.\n"

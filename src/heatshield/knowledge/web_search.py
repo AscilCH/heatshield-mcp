@@ -8,6 +8,17 @@ async def search_web_for_pdfs(query: str, max_results: int = 5) -> str:
     """
     try:
         search_query = query.lower()
+        if "who" in search_query or "world health" in search_query:
+            return json.dumps({
+                "query": query,
+                "results": [{
+                    "title": "Heat and Health in the WHO European Region: Updated Evidence for Effective Prevention",
+                    "url": "https://iris.who.int/bitstream/handle/10665/344116/9789289055406-eng.pdf",
+                    "href": "https://iris.who.int/bitstream/handle/10665/344116/9789289055406-eng.pdf",
+                    "snippet": "Official WHO (World Health Organization) guidelines for heat-health action plans, vulnerable populations, and health-system resilience during extreme heat."
+                }]
+            })
+            
         if "epa" in search_query or "air" in search_query or "pollution" in search_query:
             return json.dumps({
                 "query": query,
