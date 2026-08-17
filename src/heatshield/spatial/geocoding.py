@@ -20,8 +20,6 @@ KNOWN_CITIES = {
     "rome": (41.9028, 12.4964, "Rome"),
     "tunis": (36.8065, 10.1815, "Tunis"),
     "sfax": (34.7406, 10.7603, "Sfax"),
-    "midoun": (33.8081, 10.9922, "Midoun"),
-    "houmt souk": (33.8750, 10.8583, "Houmt Souk"),
     "djerba": (33.8075, 10.8451, "Djerba"),
     "dubai": (25.2048, 55.2708, "Dubai"),
     "los angeles": (34.0522, -118.2437, "Los Angeles"),
@@ -154,8 +152,6 @@ async def resolve_location_coords(query: str) -> tuple[float, float, str]:
 
         # 3. Try Nominatim
         candidate_queries = [query]
-        if "djerba" in clean:
-            candidate_queries.extend(["Houmt Souk, Djerba", "Djerba, Tunisia"])
             
         for q in candidate_queries:
             try:
@@ -180,11 +176,21 @@ async def resolve_location_coords(query: str) -> tuple[float, float, str]:
 async def reverse_geocode(lat: float, lon: float) -> str:
     """
     Reverse geocodes coordinates to find the city/town name with fallback.
+    Uses closest-distance matching to avoid returning wrong nearby cities.
     """
-    # Check if close to any known city
+    # Find the CLOSEST known city within 0.15 degrees
+    best_name = None
+    best_dist = float('inf')
     for _, (c_lat, c_lon, name) in KNOWN_CITIES.items():
-        if abs(lat - c_lat) < 0.15 and abs(lon - c_lon) < 0.15:
-            return name
+        d_lat = abs(lat - c_lat)
+        d_lon = abs(lon - c_lon)
+        if d_lat < 0.15 and d_lon < 0.15:
+            dist = d_lat**2 + d_lon**2
+            if dist < best_dist:
+                best_dist = dist
+                best_name = name
+    if best_name:
+        return best_name
 
     async with httpx.AsyncClient(headers={'User-Agent': 'heatshield-mcp/0.1.0'}) as client:
         try:
