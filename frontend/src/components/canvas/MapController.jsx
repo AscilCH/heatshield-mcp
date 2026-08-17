@@ -2,15 +2,44 @@ import React, { useEffect } from 'react';
 import { useMap } from 'react-leaflet';
 import L from 'leaflet';
 
+function calculateDistanceKm(lat1, lon1, lat2, lon2) {
+  const R = 6371;
+  const dLat = (lat2 - lat1) * Math.PI / 180;
+  const dLon = (lon2 - lon1) * Math.PI / 180;
+  const a = Math.sin(dLat/2) * Math.sin(dLat/2) +
+    Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * 
+    Math.sin(dLon/2) * Math.sin(dLon/2);
+  return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+}
+
 export default function MapController({ markers, routeGeojson, uhiGeojson, isochroneGeojson, heatDomeGeojson, canvasCamera, canvasLayers }) {
   const map = useMap();
   
   useEffect(() => {
+    const smartMove = (target, options, zoomLevel) => {
+      map.invalidateSize();
+      const center = map.getCenter();
+      let targetCenter = target.isValid ? target.getCenter() : { lat: target[0], lng: target[1] };
+      const dist = calculateDistanceKm(center.lat, center.lng, targetCenter.lat, targetCenter.lng);
+      
+      if (target.isValid) {
+        if (dist > 3000) {
+          map.fitBounds(target, { padding: options.padding || [50,50], maxZoom: options.maxZoom || 12, animate: false });
+        } else {
+          map.flyToBounds(target, { ...options, duration: 1.5 });
+        }
+      } else {
+        if (dist > 3000) {
+          map.setView(target, zoomLevel, { animate: false });
+        } else {
+          map.flyTo(target, zoomLevel, { duration: 1.5 });
+        }
+      }
+    };
     // 0. Top Priority: Explicit Canvas Camera
     if (canvasCamera && canvasCamera.lat && canvasCamera.lng) {
       setTimeout(() => {
-        map.invalidateSize();
-        map.flyTo([canvasCamera.lat, canvasCamera.lng], canvasCamera.zoom || 12, { duration: 1.5 });
+        smartMove([canvasCamera.lat, canvasCamera.lng], {}, canvasCamera.zoom || 12);
       }, 100);
       return;
     }
@@ -22,8 +51,7 @@ export default function MapController({ markers, routeGeojson, uhiGeojson, isoch
         const b = geoJsonLayer.getBounds();
         if (b.isValid()) {
           setTimeout(() => {
-            map.invalidateSize();
-            map.flyToBounds(b, { padding: [50, 50], maxZoom: 7, duration: 1.5 });
+            smartMove(b, { padding: [50, 50], maxZoom: 7 });
           }, 100);
           return;
         }
@@ -39,8 +67,7 @@ export default function MapController({ markers, routeGeojson, uhiGeojson, isoch
         const b = geoJsonLayer.getBounds();
         if (b.isValid()) {
           setTimeout(() => {
-            map.invalidateSize();
-            map.flyToBounds(b, { padding: [50, 50], maxZoom: 15, duration: 1.5 });
+            smartMove(b, { padding: [50, 50], maxZoom: 15 });
           }, 100);
           return;
         }
@@ -56,8 +83,7 @@ export default function MapController({ markers, routeGeojson, uhiGeojson, isoch
         const b = geoJsonLayer.getBounds();
         if (b.isValid()) {
           setTimeout(() => {
-            map.invalidateSize();
-            map.flyToBounds(b, { padding: [50, 50], maxZoom: 14, duration: 1.5 });
+            smartMove(b, { padding: [50, 50], maxZoom: 14 });
           }, 100);
           return;
         }
@@ -73,8 +99,7 @@ export default function MapController({ markers, routeGeojson, uhiGeojson, isoch
         const b = geoJsonLayer.getBounds();
         if (b.isValid()) {
           setTimeout(() => {
-            map.invalidateSize();
-            map.flyToBounds(b, { padding: [50, 50], maxZoom: 14, duration: 1.5 });
+            smartMove(b, { padding: [50, 50], maxZoom: 14 });
           }, 100);
           return;
         }
@@ -102,12 +127,11 @@ export default function MapController({ markers, routeGeojson, uhiGeojson, isoch
       
       if (bounds.isValid()) {
         setTimeout(() => {
-          map.invalidateSize();
           if (maxDist > 15 || targetMarkers.length === 1) {
             const primary = targetMarkers[targetMarkers.length - 1];
-            map.flyTo([primary.lat, primary.lng], 11, { duration: 1.5 });
+            smartMove([primary.lat, primary.lng], {}, 11);
           } else {
-            map.flyToBounds(bounds, { padding: [50, 50], maxZoom: 14, duration: 1.5 });
+            smartMove(bounds, { padding: [50, 50], maxZoom: 14 });
           }
         }, 100);
       }

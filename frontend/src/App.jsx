@@ -321,6 +321,46 @@ function App() {
                     "get_occupational_heat_guidance": "👷 Fetching OSHA/NIOSH work-rest cycles..."
                   };
                   setCurrentAction(actionMap[data.name] || `⚙️ Running ${data.name}...`);
+                } else if (data.type === 'partial_map_update') {
+                  try {
+                    const parsedData = typeof data.data === 'string' ? JSON.parse(data.data) : data.data;
+                    if (parsedData.heatmap_geojson) {
+                      setUhiGeojson(prev => {
+                        if (!prev) return parsedData.heatmap_geojson;
+                        return {
+                          ...prev,
+                          features: [...(prev.features || []), ...(parsedData.heatmap_geojson.features || [])]
+                        };
+                      });
+                    }
+                    if (parsedData.isochrone_geojson) {
+                      setIsochroneGeojson(prev => {
+                        if (!prev) return parsedData.isochrone_geojson;
+                        return {
+                          ...prev,
+                          features: [...(prev.features || []), ...(parsedData.isochrone_geojson.features || [])]
+                        };
+                      });
+                    }
+                    if (parsedData.elements) {
+                      const newMarkers = parsedData.elements
+                        .filter(el => el.lat && el.lon)
+                        .slice(0, 20)
+                        .map(el => {
+                          const tags = el.tags || {};
+                          return {
+                            type: "cooling_spot",
+                            lat: el.lat,
+                            lng: el.lon,
+                            label: tags.name || tags.amenity || tags.leisure || 'Cooling Spot',
+                            tags: tags
+                          };
+                        });
+                      setMarkers(prev => [...(prev || []), ...newMarkers]);
+                    }
+                  } catch (e) {
+                    console.error("Error parsing partial_map_update data", e);
+                  }
                 } else if (data.type === 'final') {
                   const { text, markers: newMarkers, forecast, aq_forecast, uhi_geojson, heat_dome_geojson, route_geojson, isochrone_geojson, safety_advice, work_rest_guidance, medical_triage_advice, symptom_triage } = data;
                   const cleanedText = (text || "").replace(/\n#\n/g, '\n### ').replace(/\n##\n/g, '\n### ');
