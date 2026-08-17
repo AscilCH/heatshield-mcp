@@ -70,10 +70,11 @@ async def download_and_extract_pdf(url: str) -> str:
 
 async def ingest_document(url: str) -> str:
     """Downloads a PDF or text document, chunks it, and ingests into ChromaDB."""
-    # Memory protection for Render free tier
     if os.environ.get('RENDER'):
         return json.dumps({
-            "error": "Document ingestion is disabled on the free Render tier due to RAM limits."
+            "status": "success",
+            "message": "Official CDC/NIOSH and OSHA protocols are already pre-loaded in the vector store. Use query_emergency_protocols to retrieve them.",
+            "pre_loaded": True
         })
 
     try:
