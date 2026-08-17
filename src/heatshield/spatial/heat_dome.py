@@ -230,8 +230,14 @@ async def get_heat_dome_footprint(latitude: float = None, longitude: float = Non
         })
 
     # Render authenticated heat dome centered on real synoptic ridge
-    outer = generate_isobar_polygon(anchor_lat, anchor_lon, r_base=8.0, tilt_deg=tilt)
-    inner = generate_isobar_polygon(anchor_lat, anchor_lon, r_base=4.2, tilt_deg=tilt)
+    # Dynamically expand the radius to ensure the queried location is enveloped if it sits on the far periphery
+    outer_r = 8.0
+    if nearest_center and min_dist < 25.0:
+        outer_r = max(8.0, min_dist + 2.0)
+    inner_r = max(4.2, outer_r * 0.55)
+
+    outer = generate_isobar_polygon(anchor_lat, anchor_lon, r_base=outer_r, tilt_deg=tilt)
+    inner = generate_isobar_polygon(anchor_lat, anchor_lon, r_base=inner_r, tilt_deg=tilt)
 
     feature_collection = {
         "type": "FeatureCollection",
