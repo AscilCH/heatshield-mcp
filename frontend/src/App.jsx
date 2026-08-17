@@ -89,6 +89,50 @@ function App() {
     }
   }, [streamingMessage, displayedStreamingMessage]);
 
+  // Telemetry Tracker
+  useEffect(() => {
+    const startTime = Date.now();
+    let visitorId = localStorage.getItem('visitor_id');
+    if (!visitorId) {
+      visitorId = 'viz_' + Math.random().toString(36).substr(2, 9);
+      localStorage.setItem('visitor_id', visitorId);
+    }
+    
+    const tz = Intl.DateTimeFormat().resolvedOptions().timeZone;
+
+    fetch(`${API_URL}/api/telemetry`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        action: 'visit',
+        visitor_id: visitorId,
+        url: window.location.href,
+        timezone: tz
+      })
+    }).catch(e => console.error("Telemetry warning", e));
+
+    const handleUnload = () => {
+      const duration = Math.round((Date.now() - startTime) / 1000);
+      const payload = JSON.stringify({
+        action: 'leave',
+        visitor_id: visitorId,
+        url: window.location.href,
+        duration: duration,
+        timezone: tz
+      });
+      // Try sendBeacon for reliability during unload, fallback to fetch if unavailable
+      if (navigator.sendBeacon && Blob) {
+        const blob = new Blob([payload], { type: 'application/json' });
+        navigator.sendBeacon(`${API_URL}/api/telemetry`, blob);
+      }
+    };
+
+    window.addEventListener('beforeunload', handleUnload);
+    return () => {
+      window.removeEventListener('beforeunload', handleUnload);
+    };
+  }, []);
+
   // Establish WebSocket connection for real-time push notifications
   useEffect(() => {
     const ws = new WebSocket(`${WS_URL}/ws/alerts`);

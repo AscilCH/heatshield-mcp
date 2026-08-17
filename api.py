@@ -8,7 +8,7 @@ import asyncio
 import os
 import json
 from contextlib import asynccontextmanager
-from fastapi import FastAPI, HTTPException, WebSocket, WebSocketDisconnect, Depends
+from fastapi import FastAPI, HTTPException, WebSocket, WebSocketDisconnect, Depends, Request
 from fastapi.responses import StreamingResponse
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
@@ -197,6 +197,32 @@ class ChatRequest(BaseModel):
     history: typing.List[dict] = []
     latitude: typing.Optional[float] = None
     longitude: typing.Optional[float] = None
+
+class TelemetryRequest(BaseModel):
+    action: str
+    visitor_id: str
+    url: str
+    duration: typing.Optional[int] = None
+    timezone: typing.Optional[str] = None
+
+@app.post("/api/telemetry")
+async def telemetry_endpoint(req: TelemetryRequest, request: Request):
+    ip = request.client.host
+    forwarded = request.headers.get("X-Forwarded-For")
+    if forwarded:
+        ip = forwarded.split(",")[0].strip()
+        
+    print(f"\n==================================================")
+    print(f"[ANALYTICS] 👀 VISITOR TRACKING ALERT!")
+    print(f"[ANALYTICS] Action: {req.action}")
+    print(f"[ANALYTICS] Visitor ID: {req.visitor_id}")
+    print(f"[ANALYTICS] URL: {req.url}")
+    print(f"[ANALYTICS] IP Address: {ip}")
+    print(f"[ANALYTICS] Timezone: {req.timezone}")
+    if req.duration is not None:
+        print(f"[ANALYTICS] Time Spent on Page: {req.duration} seconds")
+    print(f"==================================================\n")
+    return {"status": "ok"}
 
 @app.websocket("/ws/alerts")
 async def websocket_endpoint(websocket: WebSocket):
