@@ -388,6 +388,20 @@ async def route_to_nearest_cooling_spot(
     except:
         return route_result
 
+@mcp.tool()
+async def open_comparison_view(cities: list[dict]) -> str:
+    """
+    Opens the side-by-side Comparative Matrix UI on the frontend canvas.
+    Use this tool whenever the user asks to compare weather, heat risk, or UV index across multiple cities/locations.
+    
+    Args:
+        cities: A list of dictionaries containing comparative data.
+                Format: [{"location": "Paris", "temperature_celsius": 32, "heat_risk": "EXTREME", "uv_index": 8, "notes": "Active Heat Dome"}]
+    """
+    return json.dumps({
+        "type": "open_comparison_view",
+        "data": cities
+    })
 
 @mcp.tool()
 async def ingest_emergency_document_url(url: str) -> str:
