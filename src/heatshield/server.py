@@ -316,6 +316,82 @@ async def get_walking_route(start_lat: float = None, start_lon: float = None, en
         
     return await routing.get_walking_route(start_lat, start_lon, end_lat, end_lon)
 
+@mcp.tool()
+async def route_to_nearest_cooling_spot(
+    latitude: float = None,
+    longitude: float = None,
+    location_name: str = None,
+    radius: int = 5000
+) -> str:
+    """
+    Finds the nearest cooling spot AND calculates a walking route to it in a single step.
+    Use this when the user asks to find a cool place nearby and get directions/route to it.
+    This is the PREFERRED tool when the user wants both discovery and routing combined.
+    Do NOT call find_cooling_spots + get_walking_route separately; use this instead.
+    
+    Args:
+        latitude: User's current latitude
+        longitude: User's current longitude
+        location_name: Optional fallback location name for geocoding
+        radius: Search radius in meters (default 5000)
+    """
+    import math
+    
+    if location_name and (latitude is None or longitude is None):
+        latitude, longitude, _ = await geocoding.resolve_location_coords(location_name)
+    
+    if latitude is None or longitude is None:
+        return json.dumps({"error": "Cannot determine your location. Please share your coordinates."})
+    
+    # Step 1: Find cooling spots via Overpass
+    spots_result = await cooling_spots.search_cooling_spots(latitude, longitude, radius)
+    try:
+        spots_data = json.loads(spots_result)
+    except:
+        return json.dumps({"error": "Failed to search for cooling spots."})
+    
+    elements = spots_data.get("elements", [])
+    if not elements:
+        return json.dumps({"error": f"No cooling spots found within {radius}m of your location."})
+    
+    # Step 2: Pick the absolute closest spot by haversine
+    def haversine(lat1, lon1, lat2, lon2):
+        R = 6371000
+        p1, p2 = math.radians(lat1), math.radians(lat2)
+        dp, dl = math.radians(lat2 - lat1), math.radians(lon2 - lon1)
+        a = math.sin(dp/2)**2 + math.cos(p1) * math.cos(p2) * math.sin(dl/2)**2
+        return R * 2 * math.atan2(math.sqrt(a), math.sqrt(1 - a))
+    
+    best_spot = None
+    best_dist = float('inf')
+    for el in elements:
+        s_lat = el.get("lat") or el.get("center", {}).get("lat")
+        s_lon = el.get("lon") or el.get("center", {}).get("lon")
+        if s_lat is None or s_lon is None:
+            continue
+        d = haversine(latitude, longitude, s_lat, s_lon)
+        if d < best_dist:
+            best_dist = d
+            best_spot = {"lat": s_lat, "lon": s_lon, "tags": el.get("tags", {}), "distance_m": int(d)}
+    
+    if not best_spot:
+        return json.dumps({"error": "Found cooling spots but could not determine their coordinates."})
+    
+    spot_name = best_spot["tags"].get("name") or best_spot["tags"].get("amenity") or best_spot["tags"].get("leisure") or "Cooling Spot"
+    
+    # Step 3: Route to it using OSRM
+    route_result = await routing.get_walking_route(latitude, longitude, best_spot["lat"], best_spot["lon"])
+    
+    try:
+        route_data = json.loads(route_result)
+        route_data["destination_name"] = spot_name
+        route_data["destination_lat"] = best_spot["lat"]
+        route_data["destination_lon"] = best_spot["lon"]
+        route_data["destination_distance_crow_m"] = best_spot["distance_m"]
+        route_data["all_spots_found"] = len(elements)
+        return json.dumps(route_data)
+    except:
+        return route_result
 
 
 @mcp.tool()

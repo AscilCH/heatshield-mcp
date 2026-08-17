@@ -593,6 +593,22 @@ async def chat_endpoint(req: ChatRequest):
                                         })
                         except:
                             pass
+                    
+                    # If we used the combined route tool, extract the destination marker
+                    if tool_name == "route_to_nearest_cooling_spot" and not "error" in tool_output.lower():
+                        try:
+                            route_res = json.loads(tool_output)
+                            if 'destination_lat' in route_res and 'destination_lon' in route_res:
+                                map_markers.append({
+                                    "type": "cooling_spot",
+                                    "lat": route_res['destination_lat'],
+                                    "lng": route_res['destination_lon'],
+                                    "label": route_res.get('destination_name', 'Nearest Cooling Spot'),
+                                    "tags": {},
+                                    "dist": route_res.get('destination_distance_crow_m')
+                                })
+                        except:
+                            pass
                 
                 # If we got a forecast, extract the daily forecast data to render a chart!
                 if tool_name == "get_heatwave_forecast" and not "error" in tool_output.lower():
