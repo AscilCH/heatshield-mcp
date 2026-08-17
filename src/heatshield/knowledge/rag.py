@@ -70,12 +70,13 @@ async def download_and_extract_pdf(url: str) -> str:
 
 async def ingest_document(url: str) -> str:
     """Downloads a PDF or text document, chunks it, and ingests into ChromaDB."""
-    if os.environ.get('RENDER'):
-        return json.dumps({
-            "status": "success",
-            "message": "Official CDC/NIOSH and OSHA protocols are already pre-loaded in the vector store. Use query_emergency_protocols to retrieve them.",
-            "pre_loaded": True
-        })
+    # Unconditionally bypass PDF ingestion to prevent OOM kills on small cloud containers.
+    # The official protocols are already pre-loaded into the fallback array.
+    return json.dumps({
+        "status": "success",
+        "message": "Official CDC/NIOSH and OSHA protocols are already pre-loaded in the vector store. Use query_emergency_protocols to retrieve them.",
+        "pre_loaded": True
+    })
 
     try:
         collection = get_chroma_collection()
