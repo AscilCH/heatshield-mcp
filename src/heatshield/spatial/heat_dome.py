@@ -82,7 +82,7 @@ async def scan_global_heat_domes() -> dict:
                         "center_lon": center["lon"],
                         "peak_gpm": round(peak_gpm, 1),
                         "peak_temp_c": round(peak_temp, 1),
-                        "is_active": peak_gpm >= HEAT_DOME_THRESHOLD_GPM
+                        "is_active": peak_gpm >= 5880.0
                     }
                     
                     if info["is_active"]:
