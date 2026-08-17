@@ -778,7 +778,14 @@ async def chat_endpoint(req: ChatRequest):
                         parsed_output['elements'] = {
                             "status": "rendered_on_canvas",
                             "verified_spots_found": len(els),
-                            "nearest_spots": [e.get('tags', {}).get('name', 'Cooling Spot') for e in els[:3]] if els else []
+                            "nearest_spots": [
+                                {
+                                    "name": e.get('tags', {}).get('name', 'Cooling Spot'),
+                                    "lat": e.get('lat'),
+                                    "lon": e.get('lon')
+                                } 
+                                for e in els[:3]
+                            ] if els else []
                         }
                     if 'geojson' in parsed_output and 'type' in parsed_output and parsed_output['type'] == 'canvas_map_layer':
                         parsed_output['geojson'] = "Layer geometry successfully mounted to frontend canvas."
