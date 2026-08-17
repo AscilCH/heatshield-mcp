@@ -127,7 +127,7 @@ async def ingest_document(url: str) -> str:
 
 OFFICIAL_PROTOCOLS = [
     {
-        "source": "CDC/NIOSH Emergency Heat Stress Protocol (Pub No. 2016-106)",
+        "source": "CDC/NIOSH Emergency Heat Stress Protocol (Pub No. 2016-106) - https://www.cdc.gov/niosh/docs/2016-106/pdfs/2016-106.pdf",
         "content": (
             "HEAT EXHAUSTION vs. HEAT STROKE TRIAGE CRITERIA:\n"
             "1. Heat Stroke (Life-Threatening Emergency - Call 911 / EMS immediately):\n"
@@ -142,7 +142,7 @@ OFFICIAL_PROTOCOLS = [
         )
     },
     {
-        "source": "OSHA-NIOSH Occupational Work/Rest Guidelines (Extreme Heat >40°C)",
+        "source": "OSHA-NIOSH Occupational Work/Rest Guidelines (Extreme Heat >40°C) - https://www.osha.gov/sites/default/files/publications/osha3154.pdf",
         "content": (
             "OCCUPATIONAL WORK/REST PROTOCOL AT 42°C:\n"
             "1. Work/Rest Ratios: 15 minutes of work / 45 minutes of rest per hour in an air-conditioned or fully shaded break area for unacclimatized heavy labor.\n"
