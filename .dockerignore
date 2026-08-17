@@ -6,6 +6,5 @@ __pycache__
 frontend
 .chroma_db
 *.duckdb
-README.md
 ARCHITECTURE.md
 task.md
