@@ -260,14 +260,14 @@ export default function OnboardingModal({ onComplete, setUserLocation }) {
         .hs-btn-secondary:hover { border-color: rgba(255, 255, 255, 0.3); background: rgba(255, 255, 255, 0.08); }
 
         .hs-loc-chip { display: flex; align-items: center; gap: 8px; font-family: 'IBM Plex Mono', monospace; font-size: 13px; color: #00E5FF; margin: 0 0 20px; justify-content: ${language === 'العربية' ? 'flex-end' : 'flex-start'}; }
-        .hs-skip { font-size: 14.5px; color: #A1A1AA; text-decoration: none; cursor: pointer; text-align: center; margin: 0 0 24px; display: inline-block; padding: 8px 16px; border-radius: 8px; background: rgba(255, 255, 255, 0.03); transition: all .2s ease; }
-        .hs-skip:hover { color: #FFFFFF; background: rgba(255, 255, 255, 0.08); }
+        .hs-skip { font-size: 14.5px; color: #A1A1AA; text-decoration: underline; text-underline-offset: 4px; cursor: pointer; text-align: center; margin: 0 auto 24px; display: block; transition: color .2s ease; width: fit-content; }
+        .hs-skip:hover { color: #FFFFFF; }
         
         .hs-back-link {
-          display: inline-flex; align-items: center; gap: 8px; background: rgba(255, 255, 255, 0.03); border: none; border-radius: 8px; padding: 8px 12px;
-          color: #A1A1AA; font-size: 14.5px; cursor: pointer; margin-bottom: 24px; font-weight: 500; transition: all .2s ease;
+          display: inline-flex; align-items: center; gap: 6px; background: none; border: none; padding: 0;
+          color: #A1A1AA; font-size: 14.5px; cursor: pointer; margin-bottom: 24px; font-weight: 500; transition: color .2s ease;
         }
-        .hs-back-link:hover { color: #FFFFFF; background: rgba(255, 255, 255, 0.08); }
+        .hs-back-link:hover { color: #FFFFFF; }
 
         .hs-cap-card {
           border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 16px; padding: 20px 24px; margin-bottom: 14px;
@@ -291,10 +291,10 @@ export default function OnboardingModal({ onComplete, setUserLocation }) {
         }
         
         .hs-preview {
-          margin-top: 12px; padding-top: 12px; border-top: 1px solid rgba(255, 255, 255, 0.08);
-          font-family: 'IBM Plex Mono', monospace; font-size: 12.5px; color: #00E5FF; line-height: 1.6;
+          margin-top: 14px; padding-top: 14px; border-top: 1px solid rgba(255, 255, 255, 0.08);
+          font-family: 'IBM Plex Mono', monospace; font-size: 14px; color: #00E5FF; line-height: 1.6;
         }
-        .hs-disclaimer { font-size: 12px; color: #71717A; line-height: 1.6; margin: 12px 0 24px; text-align: center; }
+        .hs-disclaimer { font-size: 13px; color: #A1A1AA; line-height: 1.6; margin: 16px 0 24px; text-align: center; }
 
         .hs-lang-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-bottom: 28px; }
         .hs-lang-btn {
