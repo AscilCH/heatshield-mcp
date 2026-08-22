@@ -1,7 +1,31 @@
 import React, { useState, useEffect } from 'react';
-import { Shield, MapPin, ArrowRight, ArrowLeft, Check, Info, CloudSun, Map, PhoneCall } from 'lucide-react';
+import { ArrowRight, ArrowLeft, Check, Info } from 'lucide-react';
 import WorldFlag from 'react-world-flags';
 const Flag = WorldFlag.default || WorldFlag;
+
+const SvgShield = ({ size, color = "currentColor", strokeWidth = 1.8 }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth={strokeWidth} strokeLinecap="round" strokeLinejoin="round">
+    <path d="M12 3l7 3v6c0 4.5-3 7.5-7 9-4-1.5-7-4.5-7-9V6l7-3z"/><path d="M9 12l2 2 4-4"/>
+  </svg>
+);
+
+const SvgPin = ({ size, color = "currentColor", strokeWidth = 1.8 }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth={strokeWidth} strokeLinecap="round" strokeLinejoin="round">
+    <path d="M12 21s7-6.5 7-12a7 7 0 10-14 0c0 5.5 7 12 7 12z"/><circle cx="12" cy="9" r="2.3"/>
+  </svg>
+);
+
+const SvgRoute = ({ size, color = "currentColor", strokeWidth = 1.8 }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth={strokeWidth} strokeLinecap="round" strokeLinejoin="round">
+    <circle cx="5" cy="19" r="2"/><circle cx="19" cy="5" r="2"/><path d="M7 19h6a4 4 0 004-4V9a4 4 0 104-4"/>
+  </svg>
+);
+
+const SvgTherm = ({ size, color = "currentColor", strokeWidth = 1.8 }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth={strokeWidth} strokeLinecap="round" strokeLinejoin="round">
+    <path d="M12 14.5V5a2 2 0 10-4 0v9.5a4 4 0 104 0z"/><circle cx="10" cy="17" r="1.4"/>
+  </svg>
+);
 
 export default function OnboardingModal({ onComplete, setUserLocation }) {
   const [isOpen, setIsOpen] = useState(true);
@@ -301,7 +325,7 @@ export default function OnboardingModal({ onComplete, setUserLocation }) {
         <div className="hs-onboard-modal">
           
           <div className="hs-m-head">
-            <div className="hs-badge"><Shield size={20} strokeWidth={2.5} /></div>
+            <div className="hs-badge"><SvgShield size={20} strokeWidth={2.5} /></div>
             <div>
               <div className="hs-title">{currentT.welcome}</div>
               <div className="hs-sub">{currentT.subWelcome}</div>
@@ -350,7 +374,7 @@ export default function OnboardingModal({ onComplete, setUserLocation }) {
               <p className="hs-lede">{currentT.step2Desc}</p>
 
               <button className="hs-btn-primary" onClick={requestLocation} disabled={isDetecting}>
-                <MapPin size={17} /> {isDetecting ? currentT.detecting : currentT.useGps}
+                <SvgPin size={17} /> {isDetecting ? currentT.detecting : currentT.useGps}
               </button>
               <button className="hs-btn-secondary" onClick={() => { setLocSetText(""); setStep(3); }}>
                 {currentT.typeCity}
@@ -384,7 +408,7 @@ export default function OnboardingModal({ onComplete, setUserLocation }) {
 
               {/* Card 1 */}
               <div className={`hs-cap-card ${activeCard === 1 ? 'hs-active' : ''}`} onClick={() => setActiveCard(activeCard === 1 ? null : 1)}>
-                <div className="hs-cap-icon hs-heat"><CloudSun size={16} /></div>
+                <div className="hs-cap-icon hs-heat"><SvgTherm size={16} /></div>
                 <div style={{ flex: 1 }}>
                   <p style={{ fontSize: '13.5px', fontWeight: '600', margin: '0 0 2px' }}>{currentT.feature1Title}</p>
                   <p style={{ fontSize: '12.5px', color: '#989BA6', margin: 0 }}>{currentT.feature1Desc}</p>
@@ -395,7 +419,7 @@ export default function OnboardingModal({ onComplete, setUserLocation }) {
 
               {/* Card 2 */}
               <div className={`hs-cap-card ${activeCard === 2 ? 'hs-active' : ''}`} onClick={() => setActiveCard(activeCard === 2 ? null : 2)}>
-                <div className="hs-cap-icon hs-cool"><Map size={16} /></div>
+                <div className="hs-cap-icon hs-cool"><SvgRoute size={16} /></div>
                 <div style={{ flex: 1 }}>
                   <p style={{ fontSize: '13.5px', fontWeight: '600', margin: '0 0 2px' }}>{currentT.feature2Title}</p>
                   <p style={{ fontSize: '12.5px', color: '#989BA6', margin: 0 }}>{currentT.feature2Desc}</p>
@@ -406,7 +430,7 @@ export default function OnboardingModal({ onComplete, setUserLocation }) {
 
               {/* Card 3 */}
               <div className={`hs-cap-card ${activeCard === 3 ? 'hs-active' : ''}`} onClick={() => setActiveCard(activeCard === 3 ? null : 3)}>
-                <div className="hs-cap-icon hs-heat"><PhoneCall size={16} /></div>
+                <div className="hs-cap-icon hs-heat"><SvgShield size={16} /></div>
                 <div style={{ flex: 1 }}>
                   <p style={{ fontSize: '13.5px', fontWeight: '600', margin: '0 0 2px', display: 'flex', alignItems: 'center', gap: '6px' }}>
                     {currentT.feature3Title} <Info size={13} color="#63666F" />
