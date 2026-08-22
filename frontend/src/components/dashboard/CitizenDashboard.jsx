@@ -1,5 +1,5 @@
 import React from 'react';
-import { Sun, PlusSquare, MapPin, Heart, Briefcase } from 'lucide-react';
+import { SvgTherm, SvgRoute, SvgShield, SvgActivity } from '../Icons';
 
 export default function CitizenDashboard({ 
   currentWeather, 
@@ -17,7 +17,7 @@ export default function CitizenDashboard({
       <div className={`hero-alert-banner ${getRiskColorClass(riskLevel)}`}>
         <div className="alert-top">
           <span className="location-text">{currentWeather ? 'Right now near you' : 'Location required'}</span>
-          <Sun size={28} color={currentWeather ? (riskLevel === 'LOW' ? '#86efac' : '#fca5a5') : "#a1a1aa"} />
+          <SvgTherm size={28} color={currentWeather ? (riskLevel === 'LOW' ? 'var(--risk-cool)' : 'var(--risk-extreme)') : "var(--text-secondary)"} />
         </div>
         <h2>{currentWeather ? `${currentWeather.heat_risk_level} heat — ${Math.round(currentWeather.feels_like_celsius)}°C` : 'Analyzing conditions...'}</h2>
         <p>{currentWeather ? (riskLevel === 'EXTREME' || riskLevel === 'HIGH' ? 'Avoid going outside during peak hours. Drink water.' : 'Conditions are relatively safe. Stay hydrated.') : 'Please enter your location to get safety alerts.'}</p>
@@ -26,19 +26,19 @@ export default function CitizenDashboard({
       {/* 2x2 Action Grid */}
       <div className="action-grid">
         <button className={`action-btn ${currentWeather ? 'btn-red' : 'btn-gray'}`} onClick={() => onQuickAction("I don't feel well. Please ask me for my symptoms to triage heat exhaustion vs heat stroke.")}>
-          <PlusSquare size={28} />
+          <SvgShield size={28} />
           <span>I don't feel well</span>
         </button>
         <button className="action-btn btn-gray" onClick={() => onQuickAction("Find a cool place nearby and give me a safe walking route to it.")}>
-          <MapPin size={28} />
+          <SvgRoute size={28} />
           <span>Find cool place nearby</span>
         </button>
         <button className="action-btn btn-gray" onClick={onOpenCheckIn}>
-          <Heart size={28} />
+          <SvgActivity size={28} />
           <span>Check on someone</span>
         </button>
-        <button className="action-btn btn-gray" onClick={() => onQuickAction("Is it safe to work outside right now? What are the CDC work/rest cycles for 41C?")}>
-          <Briefcase size={28} />
+        <button className="action-btn btn-gray" onClick={() => onQuickAction("Is it safe to work outside right now?")}>
+          <SvgTherm size={28} />
           <span>Safe to work outside?</span>
         </button>
       </div>

@@ -8,7 +8,7 @@ import L from 'leaflet'
 import DOMPurify from 'dompurify'
 import axios from 'axios'
 import { Shield, Briefcase, User, MoreHorizontal, ArrowLeft, Navigation, MapPin, AlertTriangle } from 'lucide-react'
-import { SvgTherm, SvgRoute, SvgHardHat } from './components/Icons'
+import { SvgTherm, SvgRoute, SvgHardHat, SvgShield, SvgActivity, SvgMenu, SvgUser } from './components/Icons'
 
 // Modular Components (Single Responsibility Principle)
 import MapController from './components/canvas/MapController'
@@ -612,19 +612,25 @@ function App() {
       <div className="sidebar">
         <div className="sidebar-header">
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <Shield size={28} color="var(--risk-extreme)" />
-            <h1>HeatShield</h1>
+            <SvgShield size={28} color="var(--risk-extreme)" />
+            <h1 style={{ fontFamily: 'var(--font-display)', fontWeight: '700', fontSize: '20px' }}>HeatShield</h1>
           </div>
-          <div style={{ display: 'flex', gap: '16px', color: '#94a3b8', alignItems: 'center' }}>
-            <Briefcase 
-              size={28} 
-              className="header-icon"
-              style={{ color: isPlannerMode ? '#3b82f6' : '#94a3b8' }} 
+          <div style={{ display: 'flex', gap: '16px', color: 'var(--text-secondary)', alignItems: 'center' }}>
+            <div 
+              style={{ color: isPlannerMode ? 'var(--interactive)' : 'inherit', cursor: 'pointer' }} 
               onClick={() => setIsPlannerMode(!isPlannerMode)} 
               title="Toggle Planner Mode"
-            />
-            <User size={28} className="header-icon" style={{ color: !isPlannerMode ? '#3b82f6' : '#94a3b8' }} />
-            <MoreHorizontal size={28} className="header-icon" />
+            >
+              <SvgActivity size={24} />
+            </div>
+            <SvgUser size={24} className="header-icon" style={{ color: !isPlannerMode ? 'var(--interactive)' : 'inherit' }} />
+            <div 
+              onClick={() => { localStorage.clear(); window.location.reload(); }}
+              title="Reset Guide"
+              style={{ cursor: 'pointer' }}
+            >
+              <SvgMenu size={24} className="header-icon" />
+            </div>
           </div>
         </div>
         

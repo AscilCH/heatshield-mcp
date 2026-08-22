@@ -817,24 +817,23 @@ body {
   border-radius: 16px;
   padding: 1.5rem;
   margin-bottom: 1.5rem;
-  color: #fff;
   transition: background-color 0.3s ease;
 }
 
-.hero-alert-banner.risk-extreme { background-color: #7f1d1d; border: 1px solid #991b1b; }
-.hero-alert-banner.risk-high { background-color: #9a3412; border: 1px solid #c2410c; }
-.hero-alert-banner.risk-moderate { background-color: #854d0e; border: 1px solid #a16207; }
-.hero-alert-banner.risk-low { background-color: #14532d; border: 1px solid #166534; }
+.hero-alert-banner.risk-extreme { background-color: var(--risk-extreme-dim); border: 1px solid var(--risk-extreme); color: var(--risk-extreme); }
+.hero-alert-banner.risk-high { background-color: var(--risk-caution-dim); border: 1px solid var(--risk-caution); color: var(--risk-caution); }
+.hero-alert-banner.risk-moderate { background-color: var(--risk-caution-dim); border: 1px solid var(--risk-caution); color: var(--risk-caution); }
+.hero-alert-banner.risk-low { background-color: var(--risk-cool-dim); border: 1px solid var(--risk-cool); color: var(--risk-cool); }
 
 .hero-alert-banner.neutral {
-  background-color: #27272a;
-  border: 1px dashed #3f3f46;
+  background-color: var(--bg-panel-raised);
+  border: 1px dashed var(--line);
 }
 
 .hero-alert-banner.neutral h2, 
 .hero-alert-banner.neutral p, 
 .hero-alert-banner.neutral .location-text {
-  color: #a1a1aa;
+  color: var(--text-faint);
 }
 
 .alert-top {
@@ -845,8 +844,9 @@ body {
 }
 
 .location-text {
-  color: #fca5a5;
-  font-size: 0.9rem;
+  text-transform: uppercase;
+  font-size: 0.8rem;
+  letter-spacing: 0.05em;
   font-weight: 500;
 }
 
@@ -854,13 +854,16 @@ body {
   font-size: 1.8rem;
   margin-bottom: 0.5rem;
   font-weight: 700;
+  color: var(--text-primary);
 }
 
 .hero-alert-banner p {
   font-size: 1rem;
-  color: #fecaca;
+  color: var(--text-primary);
+  opacity: 0.9;
 }
 
+/* Action Grid */
 .action-grid {
   display: grid;
   grid-template-columns: 1fr 1fr;
@@ -872,15 +875,18 @@ body {
   display: flex;
   flex-direction: column;
   align-items: flex-start;
-  padding: 1.5rem;
+  padding: 1.25rem;
   border-radius: 16px;
   border: none;
   cursor: pointer;
-  transition: transform 0.2s, background-color 0.2s;
-  text-align: left;
+  transition: all 0.2s ease;
+  gap: 0.75rem;
+}
+
+.action-btn span {
   font-weight: 600;
   font-size: 1rem;
-  gap: 12px;
+  text-align: left;
 }
 
 .action-btn:hover {
@@ -888,17 +894,18 @@ body {
 }
 
 .btn-red {
-  background-color: #ef4444;
-  color: #fff;
+  background-color: var(--risk-extreme-dim);
+  color: var(--risk-extreme);
+  border: 1px solid var(--risk-extreme);
 }
-.btn-red:hover { background-color: #dc2626; }
+.btn-red:hover { background-color: var(--risk-extreme); color: #fff; }
 
 .btn-gray {
-  background-color: #27272a;
-  color: #e4e4e7;
-  border: 1px solid #3f3f46;
+  background-color: var(--bg-panel-raised);
+  color: var(--text-primary);
+  border: 1px solid var(--line);
 }
-.btn-gray:hover { background-color: #3f3f46; }
+.btn-gray:hover { background-color: var(--line); }
 
 /* Safe Windows */
 .safe-windows-section h4 {
