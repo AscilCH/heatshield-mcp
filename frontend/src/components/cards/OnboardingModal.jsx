@@ -270,14 +270,15 @@ export default function OnboardingModal({ onComplete, setUserLocation }) {
         .hs-back-link:hover { color: #FFFFFF; }
 
         .hs-cap-card {
-          border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 16px; padding: 20px 24px; margin-bottom: 14px;
+          border: 1px solid rgba(255, 255, 255, 0.12); border-radius: 16px; padding: 20px 24px; margin-bottom: 16px;
           cursor: pointer; display: flex; gap: 20px; align-items: flex-start;
           transition: all .2s cubic-bezier(0.4, 0, 0.2, 1);
-          background: rgba(255, 255, 255, 0.02);
+          background: rgba(255, 255, 255, 0.04);
         }
-        .hs-cap-card.hs-active { border-color: rgba(255, 255, 255, 0.24); background: rgba(255, 255, 255, 0.06); }
+        .hs-cap-card:hover { transform: translateY(-3px); border-color: rgba(255, 255, 255, 0.3); background: rgba(255, 255, 255, 0.08); box-shadow: 0 10px 30px -10px rgba(0,0,0,0.5); }
+        .hs-cap-card.hs-active { border-color: #FF6B00; background: rgba(255, 107, 0, 0.05); }
         .hs-cap-icon {
-          width: 36px; height: 36px; border-radius: 10px; display: flex; align-items: center;
+          width: 44px; height: 44px; border-radius: 12px; display: flex; align-items: center;
           justify-content: center; flex-shrink: 0;
         }
         .hs-cap-icon.hs-heat { background: rgba(255, 107, 0, 0.15); color: #FF6B00; }
@@ -405,37 +406,37 @@ export default function OnboardingModal({ onComplete, setUserLocation }) {
 
               {/* Card 1 */}
               <div className={`hs-cap-card ${activeCard === 1 ? 'hs-active' : ''}`} onClick={() => setActiveCard(activeCard === 1 ? null : 1)}>
-                <div className="hs-cap-icon hs-heat"><SvgTherm size={20} /></div>
+                <div className="hs-cap-icon hs-heat"><SvgTherm size={22} /></div>
                 <div style={{ flex: 1 }}>
-                  <p style={{ fontSize: '15px', fontWeight: '600', margin: '0 0 4px', color: '#FFFFFF' }}>{currentT.feature1Title}</p>
-                  <p style={{ fontSize: '14px', color: '#A1A1AA', margin: 0 }}>{currentT.feature1Desc}</p>
+                  <p style={{ fontSize: '16px', fontWeight: '600', margin: '0 0 6px', color: '#FFFFFF' }}>{currentT.feature1Title}</p>
+                  <p style={{ fontSize: '14.5px', color: '#D4D4D8', margin: 0 }}>{currentT.feature1Desc}</p>
                   {activeCard === 1 && <p className="hs-preview">{currentT.feature1Prev}</p>}
                 </div>
-                {dir === 'ltr' ? <ArrowRight size={18} color="#A1A1AA" style={{ marginTop: '2px' }} /> : <ArrowLeft size={18} color="#A1A1AA" style={{ marginTop: '2px' }} />}
+                {dir === 'ltr' ? <ArrowRight size={20} color="#D4D4D8" style={{ marginTop: '2px' }} /> : <ArrowLeft size={20} color="#D4D4D8" style={{ marginTop: '2px' }} />}
               </div>
 
               {/* Card 2 */}
               <div className={`hs-cap-card ${activeCard === 2 ? 'hs-active' : ''}`} onClick={() => setActiveCard(activeCard === 2 ? null : 2)}>
-                <div className="hs-cap-icon hs-cool"><SvgRoute size={20} /></div>
+                <div className="hs-cap-icon hs-cool"><SvgRoute size={22} /></div>
                 <div style={{ flex: 1 }}>
-                  <p style={{ fontSize: '15px', fontWeight: '600', margin: '0 0 4px', color: '#FFFFFF' }}>{currentT.feature2Title}</p>
-                  <p style={{ fontSize: '14px', color: '#A1A1AA', margin: 0 }}>{currentT.feature2Desc}</p>
+                  <p style={{ fontSize: '16px', fontWeight: '600', margin: '0 0 6px', color: '#FFFFFF' }}>{currentT.feature2Title}</p>
+                  <p style={{ fontSize: '14.5px', color: '#D4D4D8', margin: 0 }}>{currentT.feature2Desc}</p>
                   {activeCard === 2 && <p className="hs-preview">{currentT.feature2Prev}</p>}
                 </div>
-                {dir === 'ltr' ? <ArrowRight size={18} color="#A1A1AA" style={{ marginTop: '2px' }} /> : <ArrowLeft size={18} color="#A1A1AA" style={{ marginTop: '2px' }} />}
+                {dir === 'ltr' ? <ArrowRight size={20} color="#D4D4D8" style={{ marginTop: '2px' }} /> : <ArrowLeft size={20} color="#D4D4D8" style={{ marginTop: '2px' }} />}
               </div>
 
               {/* Card 3 */}
               <div className={`hs-cap-card ${activeCard === 3 ? 'hs-active' : ''}`} onClick={() => setActiveCard(activeCard === 3 ? null : 3)}>
-                <div className="hs-cap-icon hs-heat"><SvgShield size={20} /></div>
+                <div className="hs-cap-icon hs-heat"><SvgShield size={22} /></div>
                 <div style={{ flex: 1 }}>
-                  <p style={{ fontSize: '15px', fontWeight: '600', margin: '0 0 4px', color: '#FFFFFF', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                    {currentT.feature3Title} <Info size={15} color="#A1A1AA" />
+                  <p style={{ fontSize: '16px', fontWeight: '600', margin: '0 0 6px', color: '#FFFFFF', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    {currentT.feature3Title} <Info size={16} color="#A1A1AA" />
                   </p>
-                  <p style={{ fontSize: '14px', color: '#A1A1AA', margin: 0 }}>{currentT.feature3Desc}</p>
+                  <p style={{ fontSize: '14.5px', color: '#D4D4D8', margin: 0 }}>{currentT.feature3Desc}</p>
                   {activeCard === 3 && <p className="hs-preview">{currentT.feature3Prev}</p>}
                 </div>
-                {dir === 'ltr' ? <ArrowRight size={18} color="#A1A1AA" style={{ marginTop: '2px' }} /> : <ArrowLeft size={18} color="#A1A1AA" style={{ marginTop: '2px' }} />}
+                {dir === 'ltr' ? <ArrowRight size={20} color="#D4D4D8" style={{ marginTop: '2px' }} /> : <ArrowLeft size={20} color="#D4D4D8" style={{ marginTop: '2px' }} />}
               </div>
 
               <p className="hs-disclaimer">{currentT.disclaimer}</p>
