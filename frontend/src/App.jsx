@@ -43,9 +43,18 @@ let DefaultIcon = L.icon({
 L.Marker.prototype.options.icon = DefaultIcon
 
 function App() {
-  const [messages, setMessages] = useState([
-    { role: 'assistant', content: 'Hello! I am HeatShield, your urban heat wave safety assistant. Where are you located, and how can I help you stay safe today?' }
-  ])
+  const [messages, setMessages] = useState([]);
+  const [appLanguage, setAppLanguage] = useState('English');
+
+  const handleOnboardComplete = (lang) => {
+    setAppLanguage(lang);
+    let welcomeMessage = 'Hello! I am HeatShield, your urban heat wave safety assistant. Where are you located, and how can I help you stay safe today?';
+    if (lang === 'Français') welcomeMessage = 'Bonjour ! Je suis HeatShield, votre assistant de sécurité contre les vagues de chaleur urbaines. Où vous trouvez-vous et comment puis-je vous aider à rester en sécurité aujourd\'hui ?';
+    if (lang === 'Deutsch') welcomeMessage = 'Hallo! Ich bin HeatShield, Ihr Assistent für urbane Hitzewellen. Wo befinden Sie sich und wie kann ich Ihnen heute helfen, sicher zu bleiben?';
+    if (lang === 'العربية') welcomeMessage = 'مرحباً! أنا HeatShield، مساعدك للسلامة من موجات الحرارة الحضرية. أين أنت وكيف يمكنني مساعدتك اليوم؟';
+    
+    setMessages([{ role: 'assistant', content: welcomeMessage }]);
+  };
   const [input, setInput] = useState('')
   const [isLoading, setIsLoading] = useState(false)
   const [markers, setMarkers] = useState([])
@@ -308,6 +317,12 @@ function App() {
     setStreamingMessage("");
     setDisplayedStreamingMessage("");
 
+    // Inject language directive under the hood
+    let apiMessage = textToSend;
+    if (appLanguage !== 'English') {
+       apiMessage = `[SYSTEM INSTRUCTION: The user's interface language is set to ${appLanguage}. You MUST generate your final response, markdown, and advice entirely in ${appLanguage}.] ` + textToSend;
+    }
+
     try {
       const response = await fetch(`${API_URL}/api/chat`, {
         method: 'POST',
@@ -316,7 +331,7 @@ function App() {
           'X-API-Key': 'heatshield-demo-key'
         },
         body: JSON.stringify({
-          message: textToSend,
+          message: apiMessage,
           history: messages,
           latitude: userLocation?.lat || null,
           longitude: userLocation?.lng || null

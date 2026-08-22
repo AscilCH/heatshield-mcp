@@ -11,14 +11,15 @@ export default function OnboardingModal({ onComplete, setUserLocation }) {
     const hasOnboarded = localStorage.getItem('heatshield_onboarded');
     if (hasOnboarded === 'true') {
       setIsOpen(false);
-      if (onComplete) onComplete();
+      if (onComplete) onComplete(localStorage.getItem('heatshield_lang') || 'English');
     }
   }, [onComplete]);
 
   const handleFinish = () => {
     localStorage.setItem('heatshield_onboarded', 'true');
+    localStorage.setItem('heatshield_lang', language);
     setIsOpen(false);
-    if (onComplete) onComplete();
+    if (onComplete) onComplete(language);
   };
 
   const requestLocation = () => {
