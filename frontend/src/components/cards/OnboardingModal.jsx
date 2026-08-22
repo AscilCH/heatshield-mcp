@@ -37,13 +37,15 @@ export default function OnboardingModal({ onComplete, setUserLocation }) {
           if (setUserLocation) setUserLocation({ lat, lng: lon });
           setIsDetecting(false);
           setLocSetText(t[language]?.locSet || "Location set via GPS");
+          setTimeout(() => setStep(3), 1200); // Auto-advance after showing success
         },
         (error) => {
           console.error("Location error:", error);
           setIsDetecting(false);
           alert("Location access denied. You can set it manually in the chat.");
           setStep(3);
-        }
+        },
+        { timeout: 10000 }
       );
     } else {
       setIsDetecting(false);
@@ -280,6 +282,13 @@ export default function OnboardingModal({ onComplete, setUserLocation }) {
         }
         .hs-cap-icon.hs-heat { background: rgba(255, 107, 0, 0.15); color: #FF6B00; }
         .hs-cap-icon.hs-cool { background: rgba(0, 229, 255, 0.15); color: #00E5FF; }
+
+        @keyframes hs-spin {
+          to { transform: rotate(360deg); }
+        }
+        .hs-spinner {
+          animation: hs-spin 1s linear infinite;
+        }
         
         .hs-preview {
           margin-top: 12px; padding-top: 12px; border-top: 1px solid rgba(255, 255, 255, 0.08);
@@ -350,7 +359,19 @@ export default function OnboardingModal({ onComplete, setUserLocation }) {
               <p className="hs-lede">{currentT.step2Desc}</p>
 
               <button className="hs-btn-primary" onClick={requestLocation} disabled={isDetecting}>
-                <SvgPin size={17} /> {isDetecting ? currentT.detecting : currentT.useGps}
+                {isDetecting ? (
+                  <>
+                    <svg className="hs-spinner" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                      <line x1="12" y1="2" x2="12" y2="6"></line><line x1="12" y1="18" x2="12" y2="22"></line>
+                      <line x1="4.93" y1="4.93" x2="7.76" y2="7.76"></line><line x1="16.24" y1="16.24" x2="19.07" y2="19.07"></line>
+                      <line x1="2" y1="12" x2="6" y2="12"></line><line x1="18" y1="12" x2="22" y2="12"></line>
+                      <line x1="4.93" y1="19.07" x2="7.76" y2="16.24"></line><line x1="16.24" y1="7.76" x2="19.07" y2="4.93"></line>
+                    </svg>
+                    {currentT.detecting}
+                  </>
+                ) : (
+                  <><SvgPin size={18} /> {currentT.useGps}</>
+                )}
               </button>
               <button className="hs-btn-secondary" onClick={() => { setLocSetText(""); setStep(3); }}>
                 {currentT.typeCity}
