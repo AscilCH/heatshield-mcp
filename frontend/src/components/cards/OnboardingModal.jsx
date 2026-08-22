@@ -1,11 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import { Globe, MapPin, Compass, Shield, ArrowRight } from 'lucide-react';
+import Flag from 'react-world-flags';
 
 export default function OnboardingModal({ onComplete, setUserLocation }) {
   const [isOpen, setIsOpen] = useState(true);
   const [language, setLanguage] = useState('English');
   const [step, setStep] = useState(1);
   const [isDetecting, setIsDetecting] = useState(false);
+  const [hoveredLang, setHoveredLang] = useState(null);
 
   useEffect(() => {
     const hasOnboarded = localStorage.getItem('heatshield_onboarded');
@@ -52,8 +54,8 @@ export default function OnboardingModal({ onComplete, setUserLocation }) {
   const overlayStyle = {
     position: 'fixed',
     top: 0, left: 0, right: 0, bottom: 0,
-    backgroundColor: 'rgba(0, 0, 0, 0.8)',
-    backdropFilter: 'blur(8px)',
+    backgroundColor: 'rgba(10, 12, 16, 0.85)',
+    backdropFilter: 'blur(12px)',
     zIndex: 9999,
     display: 'flex',
     alignItems: 'center',
@@ -62,35 +64,36 @@ export default function OnboardingModal({ onComplete, setUserLocation }) {
   };
 
   const modalStyle = {
-    backgroundColor: '#1C2025',
-    border: '1px solid rgba(255, 255, 255, 0.1)',
-    borderRadius: '16px',
-    boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.5)',
+    backgroundColor: '#15181E',
+    border: '1px solid rgba(255, 255, 255, 0.08)',
+    borderRadius: '24px',
+    boxShadow: '0 30px 60px -12px rgba(0, 0, 0, 0.7), 0 0 0 1px rgba(2ea580c, 0.1)',
     width: '100%',
     maxWidth: '650px',
     overflow: 'hidden',
     display: 'flex',
     flexDirection: 'column',
-    fontFamily: 'sans-serif'
+    fontFamily: 'Inter, system-ui, sans-serif'
   };
 
   const headerStyle = {
-    background: 'linear-gradient(90deg, rgba(249,115,22,0.1) 0%, rgba(220,38,38,0.1) 100%)',
-    padding: '24px',
+    background: 'radial-gradient(circle at top right, rgba(249,115,22,0.15), transparent 400px), #15181E',
+    padding: '32px 32px 24px 32px',
     borderBottom: '1px solid rgba(255, 255, 255, 0.05)',
     display: 'flex',
     alignItems: 'center',
-    gap: '12px',
+    gap: '16px',
     direction: language === 'العربية' ? 'rtl' : 'ltr'
   };
 
   const iconBoxStyle = {
-    padding: '8px',
+    padding: '12px',
     background: 'linear-gradient(135deg, #f97316 0%, #dc2626 100%)',
-    borderRadius: '8px',
+    borderRadius: '12px',
     display: 'flex',
     alignItems: 'center',
-    justifyContent: 'center'
+    justifyContent: 'center',
+    boxShadow: '0 8px 16px -4px rgba(249,115,22,0.4)'
   };
 
   const contentStyle = {
@@ -100,16 +103,18 @@ export default function OnboardingModal({ onComplete, setUserLocation }) {
   };
 
   const titleStyle = {
-    fontSize: '1.25rem',
-    fontWeight: '600',
-    color: '#e2e8f0',
-    marginBottom: '8px'
+    fontSize: '1.5rem',
+    fontWeight: '700',
+    color: '#f8fafc',
+    marginBottom: '12px',
+    letterSpacing: '-0.02em'
   };
 
   const descStyle = {
-    fontSize: '0.95rem',
+    fontSize: '1rem',
     color: '#94a3b8',
-    marginBottom: '24px'
+    marginBottom: '28px',
+    lineHeight: '1.5'
   };
 
   const btnGridStyle = {
@@ -118,45 +123,42 @@ export default function OnboardingModal({ onComplete, setUserLocation }) {
     gap: '16px'
   };
 
-  const langBtnStyle = {
-    padding: '16px',
-    border: '1px solid rgba(255, 255, 255, 0.1)',
-    borderRadius: '8px',
-    backgroundColor: 'transparent',
-    color: '#cbd5e1',
-    cursor: 'pointer',
-    display: 'flex',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    fontSize: '1rem'
-  };
+  const languages = [
+    { name: 'English', code: 'GB' },
+    { name: 'Français', code: 'FR' },
+    { name: 'Deutsch', code: 'DE' },
+    { name: 'العربية', code: 'SA' }
+  ];
 
   const primaryBtnStyle = {
     width: '100%',
-    padding: '14px 16px',
-    backgroundColor: '#ea580c',
+    padding: '16px',
+    background: 'linear-gradient(135deg, #ea580c 0%, #dc2626 100%)',
     color: 'white',
     border: 'none',
-    borderRadius: '8px',
-    fontWeight: '500',
+    borderRadius: '12px',
+    fontWeight: '600',
     cursor: 'pointer',
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',
-    gap: '8px',
-    fontSize: '1rem'
+    gap: '12px',
+    fontSize: '1.05rem',
+    boxShadow: '0 10px 20px -5px rgba(220, 38, 38, 0.3)',
+    transition: 'all 0.2s ease'
   };
 
   const secondaryBtnStyle = {
     width: '100%',
-    padding: '12px 16px',
-    backgroundColor: 'transparent',
+    padding: '14px',
+    backgroundColor: 'rgba(255, 255, 255, 0.03)',
     color: '#cbd5e1',
-    border: '1px solid rgba(255, 255, 255, 0.2)',
-    borderRadius: '8px',
+    border: '1px solid rgba(255, 255, 255, 0.1)',
+    borderRadius: '12px',
     fontWeight: '500',
     cursor: 'pointer',
-    fontSize: '1rem'
+    fontSize: '1rem',
+    transition: 'all 0.2s ease'
   };
 
   const listItemStyle = {
@@ -165,9 +167,10 @@ export default function OnboardingModal({ onComplete, setUserLocation }) {
     alignItems: 'flex-start',
     backgroundColor: 'rgba(255, 255, 255, 0.03)',
     padding: '16px',
-    borderRadius: '8px',
+    borderRadius: '12px',
     border: '1px solid rgba(255, 255, 255, 0.05)',
-    marginBottom: '12px'
+    marginBottom: '12px',
+    transition: 'transform 0.2s ease, background-color 0.2s ease'
   };
 
   // Translations
@@ -261,11 +264,11 @@ export default function OnboardingModal({ onComplete, setUserLocation }) {
         {/* Header */}
         <div style={headerStyle}>
           <div style={iconBoxStyle}>
-            <Shield size={28} color="white" />
+            <Shield size={32} color="white" strokeWidth={2.5} />
           </div>
           <div>
-            <h2 style={{ margin: 0, fontSize: '1.25rem', fontWeight: 'bold', color: '#f8fafc' }}>{currentT.welcome || t['English'].welcome}</h2>
-            <p style={{ margin: 0, fontSize: '0.875rem', color: '#94a3b8' }}>{currentT.subWelcome || t['English'].subWelcome}</p>
+            <h2 style={{ margin: 0, fontSize: '1.35rem', fontWeight: '800', color: '#f8fafc', letterSpacing: '-0.02em' }}>{currentT.welcome || t['English'].welcome}</h2>
+            <p style={{ margin: 0, fontSize: '0.9rem', color: '#94a3b8', marginTop: '4px' }}>{currentT.subWelcome || t['English'].subWelcome}</p>
           </div>
         </div>
 
@@ -278,17 +281,47 @@ export default function OnboardingModal({ onComplete, setUserLocation }) {
               <p style={descStyle}>{t['English'].step1Desc}</p>
               
               <div style={btnGridStyle}>
-                {['English', 'Français', 'Deutsch', 'العربية'].map(lang => (
-                  <button
-                    key={lang}
-                    onClick={() => { setLanguage(lang); setStep(2); }}
-                    style={langBtnStyle}
-                    onMouseOver={(e) => e.currentTarget.style.backgroundColor = 'rgba(234, 88, 12, 0.1)'}
-                    onMouseOut={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
-                  >
-                    {lang} <ArrowRight size={18} />
-                  </button>
-                ))}
+                {languages.map(lang => {
+                  const isHovered = hoveredLang === lang.name;
+                  return (
+                    <button
+                      key={lang.name}
+                      onClick={() => { setLanguage(lang.name); setStep(2); }}
+                      onMouseEnter={() => setHoveredLang(lang.name)}
+                      onMouseLeave={() => setHoveredLang(null)}
+                      style={{
+                        padding: '18px 20px',
+                        border: isHovered ? '1px solid rgba(249, 115, 22, 0.5)' : '1px solid rgba(255, 255, 255, 0.1)',
+                        borderRadius: '12px',
+                        backgroundColor: isHovered ? 'rgba(234, 88, 12, 0.08)' : 'rgba(255, 255, 255, 0.02)',
+                        color: isHovered ? '#fff' : '#cbd5e1',
+                        cursor: 'pointer',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'space-between',
+                        fontSize: '1.05rem',
+                        fontWeight: '500',
+                        transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
+                        transform: isHovered ? 'translateY(-2px)' : 'translateY(0)',
+                        boxShadow: isHovered ? '0 10px 20px -10px rgba(249, 115, 22, 0.2)' : 'none'
+                      }}
+                    >
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                        <div style={{ 
+                          width: '28px', height: '20px', 
+                          borderRadius: '4px', overflow: 'hidden', 
+                          boxShadow: '0 2px 4px rgba(0,0,0,0.2)',
+                          display: 'flex', alignItems: 'center', justifyContent: 'center',
+                          backgroundColor: '#222'
+                        }}>
+                          <Flag code={lang.code} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                        </div>
+                        {lang.name}
+                      </div>
+                      <ArrowRight size={18} color={isHovered ? '#f97316' : '#64748b'} style={{ transition: 'all 0.2s ease', transform: isHovered ? 'translateX(4px)' : 'translateX(0)' }} />
+                    </button>
+                  );
+                })}
               </div>
             </div>
           )}
