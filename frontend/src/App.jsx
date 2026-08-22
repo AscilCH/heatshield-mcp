@@ -8,6 +8,7 @@ import L from 'leaflet'
 import DOMPurify from 'dompurify'
 import axios from 'axios'
 import { Shield, Briefcase, User, MoreHorizontal, ArrowLeft, Navigation, MapPin, AlertTriangle } from 'lucide-react'
+import { SvgTherm, SvgRoute, SvgHardHat } from './components/Icons'
 
 // Modular Components (Single Responsibility Principle)
 import MapController from './components/canvas/MapController'
@@ -801,9 +802,15 @@ function App() {
       {(currentView === 'dashboard' || currentView === 'chat') && (
         <div className="chat-input-wrapper">
           <div className="quick-action-bubbles">
-            <button onClick={() => { setCurrentView('chat'); submitMessage("What is the heat risk today?"); }}>🌡️ Heat Risk</button>
-            <button onClick={() => { setCurrentView('chat'); submitMessage("Give me the nearest cold place and direction"); }}>❄️ Nearest Cool Spot</button>
-            <button onClick={() => { setCurrentView('chat'); submitMessage("Give me a safe work schedule"); }}>👷 Work Schedule</button>
+            <button onClick={() => { setCurrentView('chat'); submitMessage("What is the heat risk today?"); }}>
+              <SvgTherm size={16} /> Heat Risk
+            </button>
+            <button onClick={() => { setCurrentView('chat'); submitMessage("Give me the nearest cold place and direction"); }}>
+              <SvgRoute size={16} /> Nearest Cool Spot
+            </button>
+            <button onClick={() => { setCurrentView('chat'); submitMessage("Give me a safe work schedule"); }}>
+              <SvgHardHat size={16} /> Work Schedule
+            </button>
           </div>
           <form className="input-area" onSubmit={(e) => { e.preventDefault(); setCurrentView('chat'); submitMessage(input); }}>
             <input

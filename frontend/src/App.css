@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Archivo+Black&family=Barlow+Condensed:wght@400;600;700&family=IBM+Plex+Mono:wght@400;600&family=Inter:wght@400;500;600&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Manrope:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap');
 
 /* CSS Reset & Setup */
 * {
@@ -8,39 +8,44 @@
 }
 
 :root {
-  /* ---- Base surfaces (warm, not navy) ---- */
-  --bg-app: #1A1512;          /* main app background */
-  --bg-panel: #221A16;        /* left panel / card base */
-  --bg-panel-raised: #2A211B; /* nested cards, gauge card, chart cards */
-  --bg-panel-sunken: #17110D; /* map background */
-  --line: #4A3A31;            /* all borders, everywhere (brightened for contrast) */
-  --line-soft: #2E241E;       /* subtler dividers */
+  /* ---- Base surfaces (OLED thermal theme) ---- */
+  --bg-app: #0A0A0A;          /* OLED black */
+  --bg-panel: #111111;        /* dark gray */
+  --bg-panel-raised: #1A1A1A; /* lighter gray */
+  --bg-panel-sunken: #050505; /* pure black */
+  --line: rgba(255, 255, 255, 0.08); /* subtle white borders */
+  --line-soft: rgba(255, 255, 255, 0.04); 
  
   /* ---- Text ---- */
-  --text-primary: #F2E8DD;    /* sand — headings, key numbers */
-  --text-secondary: #B8AA9C;  /* sand-dim — body text */
-  --text-faint: #7A6F65;      /* labels, captions, mono readouts */
+  --text-primary: #FFFFFF;    /* Pure white */
+  --text-secondary: #A1A1AA;  /* Zinc-400 */
+  --text-faint: #71717A;      /* Zinc-500 */
  
-  /* ---- Risk system (THE ONLY colors allowed to mean "risk") ---- */
-  --risk-extreme: #FF5A3C;       /* ember */
-  --risk-extreme-dim: #3D231C;   /* bg tint for extreme badges/cards */
-  --risk-caution: #FFB020;       /* amber */
-  --risk-caution-dim: #3D2E14;
-  --risk-cool: #2ECF8E;          /* teal */
-  --risk-cool-dim: #153328;
-  --risk-natural: #1FA8C9;       /* distinct cyan-teal for natural cool zones */
-  --risk-natural-dim: #10333D;
+  /* ---- Risk system ---- */
+  --risk-extreme: #E60000;       /* pure red */
+  --risk-extreme-dim: #3D0000;   /* bg tint */
+  --risk-caution: #FF6B00;       /* pure orange */
+  --risk-caution-dim: #3D1A00;
+  --risk-cool: #00E5FF;          /* pure cyan */
+  --risk-cool-dim: #00333D;
+  --risk-natural: #2DD4BF;       
+  --risk-natural-dim: #0F3D35;
  
   /* ---- Interactive / user ---- */
-  --user-bubble: #2E9EFF;     /* keep distinct from all risk colors */
+  --user-bubble: #333333;     
  
   /* ---- Route line ---- */
-  --route-line: #2ECF8E;      /* routes to cooling spots use --risk-cool */
+  --route-line: #00E5FF;      
  
-  /* ---- Emergency escalation (separate from "extreme heat" ember) ---- */
+  /* ---- Emergency escalation ---- */
   --emergency: #FF3B3B;
   --emergency-dim: #3D1414;
  
+  /* ---- Typography ---- */
+  --font-mono: 'IBM Plex Mono', monospace;
+  --font-ui: 'Manrope', system-ui, sans-serif;
+  --font-display: 'Space Grotesk', system-ui, sans-serif;
+
   /* ---- Chart palette — locked to risk tokens, nothing else allowed ---- */
   --chart-temp: var(--risk-extreme);
   --chart-secondary: var(--risk-caution);

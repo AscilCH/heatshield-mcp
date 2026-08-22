@@ -1,31 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { ArrowRight, ArrowLeft, Check, Info } from 'lucide-react';
+import { SvgShield, SvgPin, SvgRoute, SvgTherm } from '../Icons';
 import WorldFlag from 'react-world-flags';
 const Flag = WorldFlag.default || WorldFlag;
-
-const SvgShield = ({ size, color = "currentColor", strokeWidth = 1.8 }) => (
-  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth={strokeWidth} strokeLinecap="round" strokeLinejoin="round">
-    <path d="M12 3l7 3v6c0 4.5-3 7.5-7 9-4-1.5-7-4.5-7-9V6l7-3z"/><path d="M9 12l2 2 4-4"/>
-  </svg>
-);
-
-const SvgPin = ({ size, color = "currentColor", strokeWidth = 1.8 }) => (
-  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth={strokeWidth} strokeLinecap="round" strokeLinejoin="round">
-    <path d="M12 21s7-6.5 7-12a7 7 0 10-14 0c0 5.5 7 12 7 12z"/><circle cx="12" cy="9" r="2.3"/>
-  </svg>
-);
-
-const SvgRoute = ({ size, color = "currentColor", strokeWidth = 1.8 }) => (
-  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth={strokeWidth} strokeLinecap="round" strokeLinejoin="round">
-    <circle cx="5" cy="19" r="2"/><circle cx="19" cy="5" r="2"/><path d="M7 19h6a4 4 0 004-4V9a4 4 0 104-4"/>
-  </svg>
-);
-
-const SvgTherm = ({ size, color = "currentColor", strokeWidth = 1.8 }) => (
-  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth={strokeWidth} strokeLinecap="round" strokeLinejoin="round">
-    <path d="M12 14.5V5a2 2 0 10-4 0v9.5a4 4 0 104 0z"/><circle cx="10" cy="17" r="1.4"/>
-  </svg>
-);
 
 export default function OnboardingModal({ onComplete, setUserLocation }) {
   const [isOpen, setIsOpen] = useState(true);
@@ -41,7 +18,7 @@ export default function OnboardingModal({ onComplete, setUserLocation }) {
       setIsOpen(false);
       if (onComplete) onComplete(localStorage.getItem('heatshield_lang') || 'English');
     }
-  }, [onComplete]);
+  }, []); // Empty dependency array to run only once on mount
 
   const handleFinish = () => {
     localStorage.setItem('heatshield_onboarded', 'true');
