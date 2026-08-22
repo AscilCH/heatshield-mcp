@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Globe, MapPin, Compass, Shield, ArrowRight, CloudSun, Map, PhoneCall } from 'lucide-react';
+import { Shield, MapPin, ArrowRight, ArrowLeft, Check, Info, CloudSun, Map, PhoneCall } from 'lucide-react';
 import WorldFlag from 'react-world-flags';
 const Flag = WorldFlag.default || WorldFlag;
 
@@ -8,7 +8,8 @@ export default function OnboardingModal({ onComplete, setUserLocation }) {
   const [language, setLanguage] = useState('English');
   const [step, setStep] = useState(1);
   const [isDetecting, setIsDetecting] = useState(false);
-  const [hoveredLang, setHoveredLang] = useState(null);
+  const [locSetText, setLocSetText] = useState("");
+  const [activeCard, setActiveCard] = useState(null);
 
   useEffect(() => {
     const hasOnboarded = localStorage.getItem('heatshield_onboarded');
@@ -34,12 +35,12 @@ export default function OnboardingModal({ onComplete, setUserLocation }) {
           const lon = position.coords.longitude;
           if (setUserLocation) setUserLocation({ lat, lng: lon });
           setIsDetecting(false);
-          setStep(3);
+          setLocSetText(t[language]?.locSet || "Location set via GPS");
         },
         (error) => {
           console.error("Location error:", error);
           setIsDetecting(false);
-          alert("Location access denied or unavailable. You can set it manually later in the chat.");
+          alert("Location access denied. You can set it manually in the chat.");
           setStep(3);
         }
       );
@@ -52,77 +53,141 @@ export default function OnboardingModal({ onComplete, setUserLocation }) {
 
   if (!isOpen) return null;
 
-  const overlayStyle = {
-    position: 'fixed',
-    top: 0, left: 0, right: 0, bottom: 0,
-    backgroundColor: 'rgba(10, 12, 16, 0.85)',
-    backdropFilter: 'blur(12px)',
-    zIndex: 9999,
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    padding: '20px'
+  // Translations
+  const t = {
+    'English': {
+      welcome: "Welcome to HeatShield",
+      subWelcome: "Set up takes under a minute",
+      step1Eyebrow: "LANGUAGE",
+      step1Title: "Choose your language",
+      step1Desc: "HeatShield operates natively across multiple languages.",
+      step2Eyebrow: "LOCATION",
+      step2Title: "Where should I watch?",
+      step2Desc: "HeatShield maps heat risk and cooling spots for your area. Your location isn't stored, and you can change it anytime in settings.",
+      detecting: "Detecting...",
+      useGps: "Use current location",
+      typeCity: "I'll type my city in the chat",
+      skip: "Skip for now",
+      locSet: "Location set via GPS",
+      continue: "Continue",
+      back: "Back",
+      step3Eyebrow: "CAPABILITIES",
+      step3Title: "Here's what I can do",
+      step3Desc: "Tap any example to see a live preview.",
+      feature1Title: "Forecast Weather",
+      feature1Desc: '"Give me the 7-day heatwave forecast here."',
+      feature1Prev: "Preview → pulling 7-day Open-Meteo ensemble forecasts for heatwave risk.",
+      feature2Title: "Find Cooling Spots",
+      feature2Desc: '"Find cool spots wrapped on the UHI map."',
+      feature2Prev: "Preview → locating nearest cooling centers overlaying satellite land-surface temp data.",
+      feature3Title: "Emergency Protocols",
+      feature3Desc: '"Show me emergency numbers for heatstroke."',
+      feature3Prev: "Preview → retrieving verified local emergency contacts and medical first-aid steps.",
+      disclaimer: "Estimates are for guidance only. Always follow official heat warnings from local authorities.",
+      enter: "Start using HeatShield",
+      skipDash: "Skip to dashboard"
+    },
+    'Français': {
+      welcome: "Bienvenue sur HeatShield",
+      subWelcome: "Configuration en moins d'une minute",
+      step1Eyebrow: "LANGUE",
+      step1Title: "Choisissez votre langue",
+      step1Desc: "HeatShield fonctionne nativement dans plusieurs langues.",
+      step2Eyebrow: "LOCALISATION",
+      step2Title: "Où dois-je surveiller ?",
+      step2Desc: "HeatShield cartographie les risques de chaleur et les lieux frais de votre région. Votre position n'est pas stockée.",
+      detecting: "Détection...",
+      useGps: "Utiliser ma position actuelle",
+      typeCity: "Je taperai ma ville dans le chat",
+      skip: "Ignorer pour le moment",
+      locSet: "Position définie via GPS",
+      continue: "Continuer",
+      back: "Retour",
+      step3Eyebrow: "CAPACITÉS",
+      step3Title: "Voici ce que je peux faire",
+      step3Desc: "Appuyez sur un exemple pour voir un aperçu en direct.",
+      feature1Title: "Prévisions Météo",
+      feature1Desc: '"Donne-moi les prévisions de canicule sur 7 jours."',
+      feature1Prev: "Aperçu → récupération des prévisions sur 7 jours pour le risque de canicule.",
+      feature2Title: "Trouver des Lieux Frais",
+      feature2Desc: '"Trouve des lieux frais superposés sur la carte UHI."',
+      feature2Prev: "Aperçu → localisation des centres de rafraîchissement sur la carte de température de surface.",
+      feature3Title: "Protocoles d'Urgence",
+      feature3Desc: '"Montre-moi les numéros d\'urgence pour les coups de chaleur."',
+      feature3Prev: "Aperçu → récupération des contacts d'urgence locaux et des premiers secours.",
+      disclaimer: "Les estimations sont fournies à titre indicatif. Suivez toujours les alertes officielles.",
+      enter: "Commencer avec HeatShield",
+      skipDash: "Passer au tableau de bord"
+    },
+    'العربية': {
+      welcome: "مرحباً بك في HeatShield",
+      subWelcome: "الإعداد يستغرق أقل من دقيقة",
+      step1Eyebrow: "اللغة",
+      step1Title: "اختر لغتك",
+      step1Desc: "يعمل HeatShield بشكل أصلي بلغات متعددة.",
+      step2Eyebrow: "الموقع",
+      step2Title: "أين يجب أن أراقب؟",
+      step2Desc: "يقوم HeatShield برسم خريطة لمخاطر الحرارة والأماكن الباردة في منطقتك. لا يتم تخزين موقعك.",
+      detecting: "جاري التحديد...",
+      useGps: "استخدام موقعي الحالي",
+      typeCity: "سأكتب مدينتي في الدردشة",
+      skip: "تخطي الآن",
+      locSet: "تم تحديد الموقع عبر GPS",
+      continue: "متابعة",
+      back: "رجوع",
+      step3Eyebrow: "القدرات",
+      step3Title: "إليك ما يمكنني فعله",
+      step3Desc: "انقر على أي مثال لرؤية معاينة حية.",
+      feature1Title: "توقعات الطقس",
+      feature1Desc: '"أعطني توقعات موجة الحر لمدة 7 أيام هنا."',
+      feature1Prev: "معاينة ← جلب توقعات الطقس لمدة 7 أيام لمخاطر موجة الحر.",
+      feature2Title: "إيجاد الأماكن الباردة",
+      feature2Desc: '"ابحث عن أماكن باردة على خريطة الجزر الحرارية."',
+      feature2Prev: "معاينة ← تحديد أقرب مراكز التبريد المتراكبة على بيانات حرارة سطح الأرض.",
+      feature3Title: "بروتوكولات الطوارئ",
+      feature3Desc: '"أرني أرقام الطوارئ لضربات الشمس."',
+      feature3Prev: "معاينة ← استرداد جهات اتصال الطوارئ المحلية وخطوات الإسعافات الأولية.",
+      disclaimer: "التقديرات للإرشاد فقط. اتبع دائماً تحذيرات الحرارة الرسمية.",
+      enter: "البدء باستخدام HeatShield",
+      skipDash: "تخطي إلى لوحة المعلومات"
+    },
+    'Deutsch': {
+      welcome: "Willkommen bei HeatShield",
+      subWelcome: "Einrichtung dauert weniger als eine Minute",
+      step1Eyebrow: "SPRACHE",
+      step1Title: "Wählen Sie Ihre Sprache",
+      step1Desc: "HeatShield funktioniert nativ in mehreren Sprachen.",
+      step2Eyebrow: "STANDORT",
+      step2Title: "Wo soll ich überwachen?",
+      step2Desc: "HeatShield kartiert Hitzeverteilungen und kühle Orte in Ihrer Umgebung. Ihr Standort wird nicht gespeichert.",
+      detecting: "Ermittle...",
+      useGps: "Aktuellen Standort verwenden",
+      typeCity: "Ich tippe meine Stadt in den Chat",
+      skip: "Überspringen",
+      locSet: "Standort über GPS festgelegt",
+      continue: "Weiter",
+      back: "Zurück",
+      step3Eyebrow: "FUNKTIONEN",
+      step3Title: "Das kann ich tun",
+      step3Desc: "Tippen Sie auf ein Beispiel für eine Live-Vorschau.",
+      feature1Title: "Wettervorhersage",
+      feature1Desc: '"Gib mir die 7-Tage-Hitzewellen-Vorhersage."',
+      feature1Prev: "Vorschau → Abruf der 7-Tage-Wettervorhersage für Hitzewellenrisiken.",
+      feature2Title: "Kühle Orte finden",
+      feature2Desc: '"Finde kühle Orte auf der UHI-Karte."',
+      feature2Prev: "Vorschau → Lokalisierung der nächsten Kühlzentren mit Oberflächentemperatur-Overlay.",
+      feature3Title: "Notfallprotokolle",
+      feature3Desc: '"Zeige mir Notfallnummern für Hitzeschläge."',
+      feature3Prev: "Vorschau → Abruf lokaler Notfallkontakte und Erste-Hilfe-Schritte.",
+      disclaimer: "Schätzungen dienen nur zur Orientierung. Befolgen Sie offizielle Hitzewarnungen.",
+      enter: "HeatShield starten",
+      skipDash: "Zum Dashboard springen"
+    }
   };
 
-  const modalStyle = {
-    backgroundColor: '#15181E',
-    border: '1px solid rgba(255, 255, 255, 0.08)',
-    borderRadius: '24px',
-    boxShadow: '0 30px 60px -12px rgba(0, 0, 0, 0.7), 0 0 0 1px rgba(2ea580c, 0.1)',
-    width: '100%',
-    maxWidth: '650px',
-    overflow: 'hidden',
-    display: 'flex',
-    flexDirection: 'column',
-    fontFamily: 'Inter, system-ui, sans-serif'
-  };
-
-  const headerStyle = {
-    background: 'radial-gradient(circle at top right, rgba(249,115,22,0.15), transparent 400px), #15181E',
-    padding: '32px 32px 24px 32px',
-    borderBottom: '1px solid rgba(255, 255, 255, 0.05)',
-    display: 'flex',
-    alignItems: 'center',
-    gap: '16px',
-    direction: language === 'العربية' ? 'rtl' : 'ltr'
-  };
-
-  const iconBoxStyle = {
-    padding: '12px',
-    background: 'linear-gradient(135deg, #f97316 0%, #dc2626 100%)',
-    borderRadius: '12px',
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    boxShadow: '0 8px 16px -4px rgba(249,115,22,0.4)'
-  };
-
-  const contentStyle = {
-    padding: '32px',
-    direction: language === 'العربية' ? 'rtl' : 'ltr',
-    textAlign: language === 'العربية' ? 'right' : 'left'
-  };
-
-  const titleStyle = {
-    fontSize: '1.5rem',
-    fontWeight: '700',
-    color: '#f8fafc',
-    marginBottom: '12px',
-    letterSpacing: '-0.02em'
-  };
-
-  const descStyle = {
-    fontSize: '1rem',
-    color: '#94a3b8',
-    marginBottom: '28px',
-    lineHeight: '1.5'
-  };
-
-  const btnGridStyle = {
-    display: 'grid',
-    gridTemplateColumns: '1fr 1fr',
-    gap: '16px'
-  };
+  const currentT = t[language] || t['English'];
+  const dir = language === 'العربية' ? 'rtl' : 'ltr';
+  const progressPercent = step === 1 ? '33%' : step === 2 ? '66%' : '100%';
 
   const languages = [
     { name: 'English', code: 'GB' },
@@ -131,261 +196,235 @@ export default function OnboardingModal({ onComplete, setUserLocation }) {
     { name: 'العربية', code: 'SA' }
   ];
 
-  const primaryBtnStyle = {
-    width: '100%',
-    padding: '16px',
-    background: 'linear-gradient(135deg, #ea580c 0%, #dc2626 100%)',
-    color: 'white',
-    border: 'none',
-    borderRadius: '12px',
-    fontWeight: '600',
-    cursor: 'pointer',
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: '12px',
-    fontSize: '1.05rem',
-    boxShadow: '0 10px 20px -5px rgba(220, 38, 38, 0.3)',
-    transition: 'all 0.2s ease'
-  };
-
-  const secondaryBtnStyle = {
-    width: '100%',
-    padding: '14px',
-    backgroundColor: 'rgba(255, 255, 255, 0.03)',
-    color: '#cbd5e1',
-    border: '1px solid rgba(255, 255, 255, 0.1)',
-    borderRadius: '12px',
-    fontWeight: '500',
-    cursor: 'pointer',
-    fontSize: '1rem',
-    transition: 'all 0.2s ease'
-  };
-
-  const listItemStyle = {
-    display: 'flex',
-    gap: '16px',
-    alignItems: 'flex-start',
-    backgroundColor: 'rgba(255, 255, 255, 0.03)',
-    padding: '16px',
-    borderRadius: '12px',
-    border: '1px solid rgba(255, 255, 255, 0.05)',
-    marginBottom: '12px',
-    transition: 'transform 0.2s ease, background-color 0.2s ease'
-  };
-
-  // Translations
-  const t = {
-    'English': {
-      welcome: "Welcome to HeatShield",
-      subWelcome: "Autonomous Urban Heat AI Agent",
-      step1Title: "1. Choose your language",
-      step1Desc: "HeatShield operates natively across multiple languages.",
-      step2Title: "2. Set your location",
-      step2Desc: "To provide accurate spatial risk assessments, HeatShield needs your location.",
-      detecting: "Detecting GPS...",
-      useGps: "Use Current GPS Location",
-      or: "OR",
-      typeCity: "I'll type my city in the chat",
-      step3Title: "3. What you can do",
-      step3Desc: "You are talking to an autonomous AI agent. Try asking it to:",
-      feature1Title: "Forecast Weather",
-      feature1Desc: '"Give me the 7-day heatwave forecast here."',
-      feature2Title: "Find Cooling Spots",
-      feature2Desc: '"Find cool spots wrapped on the UHI map."',
-      feature3Title: "Emergency Protocols",
-      feature3Desc: '"Show me emergency numbers for heatstroke."',
-      enter: "Enter HeatShield"
-    },
-    'Français': {
-      welcome: "Bienvenue sur HeatShield",
-      subWelcome: "Agent IA Autonome de Chaleur Urbaine",
-      step2Title: "2. Définissez votre emplacement",
-      step2Desc: "Pour fournir des évaluations de risques précises, HeatShield a besoin de votre position.",
-      detecting: "Détection GPS...",
-      useGps: "Utiliser la position GPS",
-      or: "OU",
-      typeCity: "Je taperai ma ville dans le chat",
-      step3Title: "3. Ce que vous pouvez faire",
-      step3Desc: "Vous parlez à un agent IA autonome. Essayez de lui demander :",
-      feature1Title: "Prévisions Météo",
-      feature1Desc: '"Donne-moi les prévisions de canicule sur 7 jours."',
-      feature2Title: "Trouver des Lieux Frais",
-      feature2Desc: '"Trouve des lieux frais superposés sur la carte UHI."',
-      feature3Title: "Protocoles d'Urgence",
-      feature3Desc: '"Montre-moi les numéros d\'urgence pour les coups de chaleur."',
-      enter: "Entrer dans HeatShield"
-    },
-    'العربية': {
-      welcome: "مرحباً بك في HeatShield",
-      subWelcome: "مساعد الذكاء الاصطناعي للحرارة الحضرية",
-      step2Title: "2. حدد موقعك",
-      step2Desc: "لتقديم تقييمات دقيقة للمخاطر، يحتاج HeatShield إلى معرفة موقعك.",
-      detecting: "جاري تحديد الموقع...",
-      useGps: "استخدام موقع GPS الحالي",
-      or: "أو",
-      typeCity: "سأكتب مدينتي في الدردشة",
-      step3Title: "3. ماذا يمكنك أن تفعل",
-      step3Desc: "أنت تتحدث إلى ذكاء اصطناعي مستقل. جرب أن تطلب منه:",
-      feature1Title: "توقعات الطقس",
-      feature1Desc: '"أعطني توقعات موجة الحر لمدة 7 أيام هنا."',
-      feature2Title: "إيجاد الأماكن الباردة",
-      feature2Desc: '"ابحث عن أماكن باردة على خريطة الجزر الحرارية."',
-      feature3Title: "بروتوكولات الطوارئ",
-      feature3Desc: '"أرني أرقام الطوارئ لضربات الشمس."',
-      enter: "دخول HeatShield"
-    },
-    'Deutsch': {
-      welcome: "Willkommen bei HeatShield",
-      subWelcome: "Autonomer KI-Agent für städtische Hitze",
-      step2Title: "2. Standort festlegen",
-      step2Desc: "Für genaue Risikobewertungen benötigt HeatShield Ihren Standort.",
-      detecting: "GPS wird ermittelt...",
-      useGps: "Aktuellen GPS-Standort verwenden",
-      or: "ODER",
-      typeCity: "Ich tippe meine Stadt in den Chat",
-      step3Title: "3. Was Sie tun können",
-      step3Desc: "Sie sprechen mit einem autonomen KI-Agenten. Fragen Sie ihn:",
-      feature1Title: "Wettervorhersage",
-      feature1Desc: '"Gib mir die 7-Tage-Hitzewellen-Vorhersage."',
-      feature2Title: "Kühle Orte finden",
-      feature2Desc: '"Finde kühle Orte auf der UHI-Karte."',
-      feature3Title: "Notfallprotokolle",
-      feature3Desc: '"Zeige mir Notfallnummern für Hitzeschläge."',
-      enter: "HeatShield betreten"
-    }
-  };
-
-  const currentT = t[language] || t['English'];
-
   return (
-    <div style={overlayStyle}>
-      <div style={modalStyle}>
+    <>
+      <style>{`
+        @import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Manrope:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap');
         
-        {/* Header */}
-        <div style={headerStyle}>
-          <div style={iconBoxStyle}>
-            <Shield size={32} color="white" strokeWidth={2.5} />
-          </div>
-          <div>
-            <h2 style={{ margin: 0, fontSize: '1.35rem', fontWeight: '800', color: '#f8fafc', letterSpacing: '-0.02em' }}>{currentT.welcome || t['English'].welcome}</h2>
-            <p style={{ margin: 0, fontSize: '0.9rem', color: '#94a3b8', marginTop: '4px' }}>{currentT.subWelcome || t['English'].subWelcome}</p>
-          </div>
-        </div>
+        .hs-onboard-overlay {
+          position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+          background: rgba(6, 7, 9, 0.76); backdrop-filter: blur(8px);
+          z-index: 9999; display: flex; align-items: center; justify-content: center;
+          padding: 20px; font-family: 'Manrope', sans-serif; color: #F2F1EC;
+        }
 
-        {/* Content Body */}
-        <div style={contentStyle}>
+        .hs-onboard-modal {
+          width: min(490px, 100%);
+          background: #15171C;
+          border: 1px solid #282B33;
+          border-radius: 20px;
+          padding: 30px 32px 26px;
+          box-shadow: 0 30px 70px rgba(0,0,0,0.5);
+          direction: ${dir};
+          text-align: ${language === 'العربية' ? 'right' : 'left'};
+        }
+
+        .hs-m-head { display: flex; align-items: center; gap: 12px; margin-bottom: 22px; }
+        .hs-m-head .hs-badge {
+          width: 40px; height: 40px; border-radius: 11px;
+          background: linear-gradient(135deg, #E8590C, #D6293B);
+          display: flex; align-items: center; justify-content: center;
+          color: #FFF6EE; flex-shrink: 0;
+        }
+        .hs-m-head .hs-title { font-family: 'Space Grotesk', sans-serif; font-weight: 600; font-size: 16px; }
+        .hs-m-head .hs-sub { font-size: 12.5px; color: #989BA6; margin-top: 1px; }
+
+        .hs-progress-row { display: flex; align-items: center; justify-content: space-between; margin-bottom: 22px; }
+        .hs-progress-label { font-family: 'IBM Plex Mono', monospace; font-size: 11px; color: #63666F; letter-spacing: 0.04em; }
+        .hs-progress-track { height: 3px; border-radius: 2px; background: #282B33; flex: 1; margin: 0 14px; overflow: hidden; }
+        .hs-progress-fill { height: 100%; width: ${progressPercent}; background: linear-gradient(90deg, #2DD4BF 0%, #F5A623 45%, #E8590C 72%, #D6293B 100%); border-radius: 2px; transition: width .35s ease; }
+
+        .hs-eyebrow { font-family: 'IBM Plex Mono', monospace; font-size: 11px; color: #E8590C; letter-spacing: 0.05em; margin: 0 0 8px; }
+        .hs-modal-title { font-family: 'Space Grotesk', sans-serif; font-weight: 600; font-size: 23px; margin: 0 0 8px; letter-spacing: -0.01em; }
+        .hs-lede { font-size: 14px; color: #989BA6; line-height: 1.6; margin: 0 0 22px; }
+
+        .hs-btn-primary {
+          width: 100%; height: 46px; border-radius: 12px; border: none;
+          background: linear-gradient(135deg, #E8590C, #D6293B);
+          color: #FFF6EE; font-size: 14px; font-weight: 600; cursor: pointer;
+          display: flex; align-items: center; justify-content: center; gap: 9px;
+          margin-bottom: 10px; transition: transform .15s ease, box-shadow .15s ease;
+        }
+        .hs-btn-primary:hover:not(:disabled) { transform: translateY(-1px); box-shadow: 0 10px 24px rgba(232,89,12,0.28); }
+        .hs-btn-primary:disabled { opacity: 0.4; cursor: not-allowed; }
+
+        .hs-btn-secondary {
+          width: 100%; height: 44px; border-radius: 12px; border: 1px solid #282B33;
+          background: transparent; color: #F2F1EC; font-size: 13.5px; font-weight: 500;
+          cursor: pointer; margin-bottom: 10px; transition: border-color .15s ease, background .15s ease;
+        }
+        .hs-btn-secondary:hover { border-color: #3A3E48; background: #1C1F26; }
+
+        .hs-loc-chip { display: flex; align-items: center; gap: 7px; font-family: 'IBM Plex Mono', monospace; font-size: 12px; color: #2DD4BF; margin: 0 0 14px; justify-content: ${language === 'العربية' ? 'flex-end' : 'flex-start'}; }
+        .hs-skip { font-size: 12.5px; color: #63666F; text-decoration: underline; text-underline-offset: 2px; cursor: pointer; text-align: center; margin: 0 0 20px; display: block; }
+        .hs-skip:hover { color: #989BA6; }
+        
+        .hs-back-link {
+          display: inline-flex; align-items: center; gap: 6px; background: none; border: none;
+          color: #63666F; font-size: 12.5px; cursor: pointer; padding: 0; margin-bottom: 16px;
+        }
+        .hs-back-link:hover { color: #989BA6; }
+
+        .hs-cap-card {
+          border: 1px solid #282B33; border-radius: 14px; padding: 14px 15px; margin-bottom: 9px;
+          cursor: pointer; display: flex; gap: 12px; align-items: flex-start;
+          transition: transform .15s ease, border-color .15s ease;
+          background: transparent;
+        }
+        .hs-cap-card:hover { transform: translateY(-1px); }
+        .hs-cap-card.hs-active { border-color: #3A3E48; background: #1C1F26; }
+        .hs-cap-icon {
+          width: 32px; height: 32px; border-radius: 9px; display: flex; align-items: center;
+          justify-content: center; flex-shrink: 0;
+        }
+        .hs-cap-icon.hs-heat { background: #2B1608; color: #E8590C; }
+        .hs-cap-icon.hs-cool { background: #123A36; color: #2DD4BF; }
+        
+        .hs-preview {
+          margin-top: 10px; padding-top: 10px; border-top: 1px solid #282B33;
+          font-family: 'IBM Plex Mono', monospace; font-size: 11.5px; color: #2DD4BF; line-height: 1.6;
+        }
+        .hs-disclaimer { font-size: 11px; color: #63666F; line-height: 1.6; margin: 6px 0 18px; }
+
+        .hs-lang-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 24px; }
+        .hs-lang-btn {
+          padding: 14px; border: 1px solid #282B33; border-radius: 12px;
+          background: #1C1F26; color: #F2F1EC; cursor: pointer;
+          display: flex; align-items: center; justify-content: space-between;
+          font-size: 13.5px; font-weight: 500; transition: all 0.2s ease;
+        }
+        .hs-lang-btn:hover, .hs-lang-btn.hs-selected { border-color: #E8590C; background: rgba(232,89,12,0.1); }
+      `}</style>
+
+      <div className="hs-onboard-overlay">
+        <div className="hs-onboard-modal">
           
+          <div className="hs-m-head">
+            <div className="hs-badge"><Shield size={20} strokeWidth={2.5} /></div>
+            <div>
+              <div className="hs-title">{currentT.welcome}</div>
+              <div className="hs-sub">{currentT.subWelcome}</div>
+            </div>
+          </div>
+
+          <div className="hs-progress-row">
+            <span className="hs-progress-label">STEP 0{step} / 03</span>
+            <div className="hs-progress-track"><div className="hs-progress-fill"></div></div>
+          </div>
+
           {step === 1 && (
             <div>
-              <h3 style={titleStyle}>{t['English'].step1Title}</h3>
-              <p style={descStyle}>{t['English'].step1Desc}</p>
-              
-              <div style={btnGridStyle}>
-                {languages.map(lang => {
-                  const isHovered = hoveredLang === lang.name;
-                  return (
-                    <button
-                      key={lang.name}
-                      onClick={() => { setLanguage(lang.name); setStep(2); }}
-                      onMouseEnter={() => setHoveredLang(lang.name)}
-                      onMouseLeave={() => setHoveredLang(null)}
-                      style={{
-                        padding: '18px 20px',
-                        border: isHovered ? '1px solid rgba(249, 115, 22, 0.5)' : '1px solid rgba(255, 255, 255, 0.1)',
-                        borderRadius: '12px',
-                        backgroundColor: isHovered ? 'rgba(234, 88, 12, 0.08)' : 'rgba(255, 255, 255, 0.02)',
-                        color: isHovered ? '#fff' : '#cbd5e1',
-                        cursor: 'pointer',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'space-between',
-                        fontSize: '1.05rem',
-                        fontWeight: '500',
-                        transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
-                        transform: isHovered ? 'translateY(-2px)' : 'translateY(0)',
-                        boxShadow: isHovered ? '0 10px 20px -10px rgba(249, 115, 22, 0.2)' : 'none'
-                      }}
-                    >
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                        <div style={{ 
-                          width: '28px', height: '20px', 
-                          borderRadius: '4px', overflow: 'hidden', 
-                          boxShadow: '0 2px 4px rgba(0,0,0,0.2)',
-                          display: 'flex', alignItems: 'center', justifyContent: 'center',
-                          backgroundColor: '#222'
-                        }}>
-                          <Flag code={lang.code} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                        </div>
-                        {lang.name}
+              <p className="hs-eyebrow">{currentT.step1Eyebrow}</p>
+              <h1 className="hs-modal-title">{currentT.step1Title}</h1>
+              <p className="hs-lede">{currentT.step1Desc}</p>
+
+              <div className="hs-lang-grid">
+                {languages.map(lang => (
+                  <button 
+                    key={lang.name}
+                    className={`hs-lang-btn ${language === lang.name ? 'hs-selected' : ''}`}
+                    onClick={() => { setLanguage(lang.name); setTimeout(() => setStep(2), 150); }}
+                  >
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                      <div style={{ width: '22px', height: '16px', borderRadius: '3px', overflow: 'hidden', display: 'flex' }}>
+                        <Flag code={lang.code} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                       </div>
-                      <ArrowRight size={18} color={isHovered ? '#f97316' : '#64748b'} style={{ transition: 'all 0.2s ease', transform: isHovered ? 'translateX(4px)' : 'translateX(0)' }} />
-                    </button>
-                  );
-                })}
+                      {lang.name}
+                    </div>
+                    {dir === 'ltr' ? <ArrowRight size={16} color="#63666F" /> : <ArrowLeft size={16} color="#63666F" />}
+                  </button>
+                ))}
               </div>
             </div>
           )}
 
           {step === 2 && (
             <div>
-              <h3 style={titleStyle}>{currentT.step2Title}</h3>
-              <p style={descStyle}>{currentT.step2Desc}</p>
+              <button className="hs-back-link" onClick={() => setStep(1)}>
+                {dir === 'ltr' ? <ArrowLeft size={14} /> : <ArrowRight size={14} />} {currentT.back}
+              </button>
               
-              <div style={{ backgroundColor: 'rgba(0,0,0,0.2)', padding: '24px', borderRadius: '12px', border: '1px solid rgba(255,255,255,0.05)' }}>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-                  <button onClick={requestLocation} disabled={isDetecting} style={primaryBtnStyle}>
-                    <MapPin size={20} />
-                    {isDetecting ? currentT.detecting : currentT.useGps}
-                  </button>
-                  <div style={{ textAlign: 'center', fontSize: '0.85rem', color: '#64748b' }}>{currentT.or}</div>
-                  <button onClick={() => setStep(3)} style={secondaryBtnStyle}>
-                    {currentT.typeCity}
+              <p className="hs-eyebrow">{currentT.step2Eyebrow}</p>
+              <h1 className="hs-modal-title">{currentT.step2Title}</h1>
+              <p className="hs-lede">{currentT.step2Desc}</p>
+
+              <button className="hs-btn-primary" onClick={requestLocation} disabled={isDetecting}>
+                <MapPin size={17} /> {isDetecting ? currentT.detecting : currentT.useGps}
+              </button>
+              <button className="hs-btn-secondary" onClick={() => { setLocSetText(""); setStep(3); }}>
+                {currentT.typeCity}
+              </button>
+
+              {locSetText && (
+                <p className="hs-loc-chip"><Check size={14} /> <span>{locSetText}</span></p>
+              )}
+
+              <span className="hs-skip" onClick={() => setStep(3)}>{currentT.skip}</span>
+
+              {locSetText && (
+                <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '10px' }}>
+                  <button className="hs-btn-secondary" style={{ width: 'auto', padding: '0 20px', marginBottom: 0 }} onClick={() => setStep(3)}>
+                    {currentT.continue}
                   </button>
                 </div>
-              </div>
+              )}
             </div>
           )}
 
           {step === 3 && (
             <div>
-              <h3 style={titleStyle}>{currentT.step3Title}</h3>
-              <p style={descStyle}>{currentT.step3Desc}</p>
-              
-              <div style={{ display: 'flex', flexDirection: 'column' }}>
-                <div style={listItemStyle}>
-                  <CloudSun size={24} color="#60a5fa" style={{ marginTop: '2px', flexShrink: 0 }} />
-                  <div>
-                    <span style={{ display: 'block', fontSize: '1rem', fontWeight: '500', color: '#e2e8f0' }}>{currentT.feature1Title}</span>
-                    <span style={{ display: 'block', fontSize: '0.85rem', color: '#94a3b8', marginTop: '4px' }}>{currentT.feature1Desc}</span>
-                  </div>
-                </div>
-                <div style={listItemStyle}>
-                  <Map size={24} color="#34d399" style={{ marginTop: '2px', flexShrink: 0 }} />
-                  <div>
-                    <span style={{ display: 'block', fontSize: '1rem', fontWeight: '500', color: '#e2e8f0' }}>{currentT.feature2Title}</span>
-                    <span style={{ display: 'block', fontSize: '0.85rem', color: '#94a3b8', marginTop: '4px' }}>{currentT.feature2Desc}</span>
-                  </div>
-                </div>
-                <div style={listItemStyle}>
-                  <PhoneCall size={24} color="#fb923c" style={{ marginTop: '2px', flexShrink: 0 }} />
-                  <div>
-                    <span style={{ display: 'block', fontSize: '1rem', fontWeight: '500', color: '#e2e8f0' }}>{currentT.feature3Title}</span>
-                    <span style={{ display: 'block', fontSize: '0.85rem', color: '#94a3b8', marginTop: '4px' }}>{currentT.feature3Desc}</span>
-                  </div>
-                </div>
-              </div>
-              
-              <button 
-                onClick={handleFinish}
-                style={{ ...primaryBtnStyle, marginTop: '24px', background: 'linear-gradient(90deg, #f97316 0%, #dc2626 100%)', padding: '16px', fontSize: '1.1rem' }}
-              >
-                {currentT.enter}
+              <button className="hs-back-link" onClick={() => setStep(2)}>
+                {dir === 'ltr' ? <ArrowLeft size={14} /> : <ArrowRight size={14} />} {currentT.back}
               </button>
+
+              <p className="hs-eyebrow">{currentT.step3Eyebrow}</p>
+              <h1 className="hs-modal-title">{currentT.step3Title}</h1>
+              <p className="hs-lede">{currentT.step3Desc}</p>
+
+              {/* Card 1 */}
+              <div className={`hs-cap-card ${activeCard === 1 ? 'hs-active' : ''}`} onClick={() => setActiveCard(activeCard === 1 ? null : 1)}>
+                <div className="hs-cap-icon hs-heat"><CloudSun size={16} /></div>
+                <div style={{ flex: 1 }}>
+                  <p style={{ fontSize: '13.5px', fontWeight: '600', margin: '0 0 2px' }}>{currentT.feature1Title}</p>
+                  <p style={{ fontSize: '12.5px', color: '#989BA6', margin: 0 }}>{currentT.feature1Desc}</p>
+                  {activeCard === 1 && <p className="hs-preview">{currentT.feature1Prev}</p>}
+                </div>
+                {dir === 'ltr' ? <ArrowRight size={15} color="#63666F" style={{ marginTop: '2px' }} /> : <ArrowLeft size={15} color="#63666F" style={{ marginTop: '2px' }} />}
+              </div>
+
+              {/* Card 2 */}
+              <div className={`hs-cap-card ${activeCard === 2 ? 'hs-active' : ''}`} onClick={() => setActiveCard(activeCard === 2 ? null : 2)}>
+                <div className="hs-cap-icon hs-cool"><Map size={16} /></div>
+                <div style={{ flex: 1 }}>
+                  <p style={{ fontSize: '13.5px', fontWeight: '600', margin: '0 0 2px' }}>{currentT.feature2Title}</p>
+                  <p style={{ fontSize: '12.5px', color: '#989BA6', margin: 0 }}>{currentT.feature2Desc}</p>
+                  {activeCard === 2 && <p className="hs-preview">{currentT.feature2Prev}</p>}
+                </div>
+                {dir === 'ltr' ? <ArrowRight size={15} color="#63666F" style={{ marginTop: '2px' }} /> : <ArrowLeft size={15} color="#63666F" style={{ marginTop: '2px' }} />}
+              </div>
+
+              {/* Card 3 */}
+              <div className={`hs-cap-card ${activeCard === 3 ? 'hs-active' : ''}`} onClick={() => setActiveCard(activeCard === 3 ? null : 3)}>
+                <div className="hs-cap-icon hs-heat"><PhoneCall size={16} /></div>
+                <div style={{ flex: 1 }}>
+                  <p style={{ fontSize: '13.5px', fontWeight: '600', margin: '0 0 2px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                    {currentT.feature3Title} <Info size={13} color="#63666F" />
+                  </p>
+                  <p style={{ fontSize: '12.5px', color: '#989BA6', margin: 0 }}>{currentT.feature3Desc}</p>
+                  {activeCard === 3 && <p className="hs-preview">{currentT.feature3Prev}</p>}
+                </div>
+                {dir === 'ltr' ? <ArrowRight size={15} color="#63666F" style={{ marginTop: '2px' }} /> : <ArrowLeft size={15} color="#63666F" style={{ marginTop: '2px' }} />}
+              </div>
+
+              <p className="hs-disclaimer">{currentT.disclaimer}</p>
+
+              <button className="hs-btn-primary" onClick={handleFinish}>{currentT.enter}</button>
+              <span className="hs-skip" style={{ marginBottom: 0 }} onClick={handleFinish}>{currentT.skipDash}</span>
             </div>
           )}
+
         </div>
       </div>
-    </div>
+    </>
   );
 }
