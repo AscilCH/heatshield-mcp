@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Globe, MapPin, Compass, Shield, ArrowRight } from 'lucide-react';
-import Flag from 'react-world-flags';
+import WorldFlag from 'react-world-flags';
+const Flag = WorldFlag.default || WorldFlag;
 
 export default function OnboardingModal({ onComplete, setUserLocation }) {
   const [isOpen, setIsOpen] = useState(true);
