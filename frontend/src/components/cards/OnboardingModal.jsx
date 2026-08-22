@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Globe, MapPin, Compass, Shield, ArrowRight } from 'lucide-react';
+import { Globe, MapPin, Compass, Shield, ArrowRight, CloudSun, Map, PhoneCall } from 'lucide-react';
 import WorldFlag from 'react-world-flags';
 const Flag = WorldFlag.default || WorldFlag;
 
@@ -189,12 +189,12 @@ export default function OnboardingModal({ onComplete, setUserLocation }) {
       typeCity: "I'll type my city in the chat",
       step3Title: "3. What you can do",
       step3Desc: "You are talking to an autonomous AI agent. Try asking it to:",
-      feature1Title: "Track Urban Heat",
-      feature1Desc: '"Map the urban heat island effect here."',
-      feature2Title: "Find Safe Routes",
-      feature2Desc: '"Find nearby cooling spots and draw a walking route."',
-      feature3Title: "Calculate WBGT",
-      feature3Desc: '"Calculate the WBGT for heavy work."',
+      feature1Title: "Forecast Weather",
+      feature1Desc: '"Give me the 7-day heatwave forecast here."',
+      feature2Title: "Find Cooling Spots",
+      feature2Desc: '"Find cool spots wrapped on the UHI map."',
+      feature3Title: "Emergency Protocols",
+      feature3Desc: '"Show me emergency numbers for heatstroke."',
       enter: "Enter HeatShield"
     },
     'Français': {
@@ -208,12 +208,12 @@ export default function OnboardingModal({ onComplete, setUserLocation }) {
       typeCity: "Je taperai ma ville dans le chat",
       step3Title: "3. Ce que vous pouvez faire",
       step3Desc: "Vous parlez à un agent IA autonome. Essayez de lui demander :",
-      feature1Title: "Suivre la chaleur urbaine",
-      feature1Desc: '"Cartographier l\'îlot de chaleur urbain ici."',
-      feature2Title: "Trouver des itinéraires sûrs",
-      feature2Desc: '"Trouver des lieux frais et tracer un itinéraire."',
-      feature3Title: "Calculer le WBGT",
-      feature3Desc: '"Calculer le WBGT pour un travail intense."',
+      feature1Title: "Prévisions Météo",
+      feature1Desc: '"Donne-moi les prévisions de canicule sur 7 jours."',
+      feature2Title: "Trouver des Lieux Frais",
+      feature2Desc: '"Trouve des lieux frais superposés sur la carte UHI."',
+      feature3Title: "Protocoles d'Urgence",
+      feature3Desc: '"Montre-moi les numéros d\'urgence pour les coups de chaleur."',
       enter: "Entrer dans HeatShield"
     },
     'العربية': {
@@ -227,12 +227,12 @@ export default function OnboardingModal({ onComplete, setUserLocation }) {
       typeCity: "سأكتب مدينتي في الدردشة",
       step3Title: "3. ماذا يمكنك أن تفعل",
       step3Desc: "أنت تتحدث إلى ذكاء اصطناعي مستقل. جرب أن تطلب منه:",
-      feature1Title: "تتبع الحرارة الحضرية",
-      feature1Desc: '"ارسم خريطة الجزر الحرارية الحضرية هنا."',
-      feature2Title: "إيجاد طرق آمنة",
-      feature2Desc: '"ابحث عن أماكن باردة قريبة وارسم طريقاً للمشي."',
-      feature3Title: "حساب مؤشر WBGT",
-      feature3Desc: '"احسب مؤشر الإجهاد الحراري للعمل الشاق."',
+      feature1Title: "توقعات الطقس",
+      feature1Desc: '"أعطني توقعات موجة الحر لمدة 7 أيام هنا."',
+      feature2Title: "إيجاد الأماكن الباردة",
+      feature2Desc: '"ابحث عن أماكن باردة على خريطة الجزر الحرارية."',
+      feature3Title: "بروتوكولات الطوارئ",
+      feature3Desc: '"أرني أرقام الطوارئ لضربات الشمس."',
       enter: "دخول HeatShield"
     },
     'Deutsch': {
@@ -246,12 +246,12 @@ export default function OnboardingModal({ onComplete, setUserLocation }) {
       typeCity: "Ich tippe meine Stadt in den Chat",
       step3Title: "3. Was Sie tun können",
       step3Desc: "Sie sprechen mit einem autonomen KI-Agenten. Fragen Sie ihn:",
-      feature1Title: "Städtische Hitze verfolgen",
-      feature1Desc: '"Kartiere den städtischen Wärmeinseleffekt hier."',
-      feature2Title: "Sichere Routen finden",
-      feature2Desc: '"Finde kühle Orte und zeichne eine Route."',
-      feature3Title: "WBGT berechnen",
-      feature3Desc: '"Berechne den WBGT für schwere Arbeit."',
+      feature1Title: "Wettervorhersage",
+      feature1Desc: '"Gib mir die 7-Tage-Hitzewellen-Vorhersage."',
+      feature2Title: "Kühle Orte finden",
+      feature2Desc: '"Finde kühle Orte auf der UHI-Karte."',
+      feature3Title: "Notfallprotokolle",
+      feature3Desc: '"Zeige mir Notfallnummern für Hitzeschläge."',
       enter: "HeatShield betreten"
     }
   };
@@ -354,21 +354,21 @@ export default function OnboardingModal({ onComplete, setUserLocation }) {
               
               <div style={{ display: 'flex', flexDirection: 'column' }}>
                 <div style={listItemStyle}>
-                  <Globe size={24} color="#60a5fa" style={{ marginTop: '2px', flexShrink: 0 }} />
+                  <CloudSun size={24} color="#60a5fa" style={{ marginTop: '2px', flexShrink: 0 }} />
                   <div>
                     <span style={{ display: 'block', fontSize: '1rem', fontWeight: '500', color: '#e2e8f0' }}>{currentT.feature1Title}</span>
                     <span style={{ display: 'block', fontSize: '0.85rem', color: '#94a3b8', marginTop: '4px' }}>{currentT.feature1Desc}</span>
                   </div>
                 </div>
                 <div style={listItemStyle}>
-                  <Compass size={24} color="#34d399" style={{ marginTop: '2px', flexShrink: 0 }} />
+                  <Map size={24} color="#34d399" style={{ marginTop: '2px', flexShrink: 0 }} />
                   <div>
                     <span style={{ display: 'block', fontSize: '1rem', fontWeight: '500', color: '#e2e8f0' }}>{currentT.feature2Title}</span>
                     <span style={{ display: 'block', fontSize: '0.85rem', color: '#94a3b8', marginTop: '4px' }}>{currentT.feature2Desc}</span>
                   </div>
                 </div>
                 <div style={listItemStyle}>
-                  <Shield size={24} color="#fb923c" style={{ marginTop: '2px', flexShrink: 0 }} />
+                  <PhoneCall size={24} color="#fb923c" style={{ marginTop: '2px', flexShrink: 0 }} />
                   <div>
                     <span style={{ display: 'block', fontSize: '1rem', fontWeight: '500', color: '#e2e8f0' }}>{currentT.feature3Title}</span>
                     <span style={{ display: 'block', fontSize: '0.85rem', color: '#94a3b8', marginTop: '4px' }}>{currentT.feature3Desc}</span>
