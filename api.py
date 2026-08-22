@@ -136,25 +136,21 @@ async def stream_gemini_response(messages, tools):
             return
             
         except Exception as e:
+            err_str = str(e)
+            
+            # Fail fast on 429 rate limits
+            if "429" in err_str:
+                print(f"[UC TRACE] ⚠️ LLM Quota Hit! Failing fast.")
+                yield {"type": "chunk", "text": "\n\n⚠️ High traffic right now, please come back later.\n\n"}
+                final_msg = MockMessage("⚠️ High traffic right now, please come back later.")
+                yield {"type": "final_msg", "msg": MockResponse([MockChoice(final_msg)])}
+                return
+                
             if attempt == 4:
                 raise e
                 
-            import asyncio, re
-            delay = 2.0
-            err_str = str(e)
-            
-            # Dynamically parse the Gemini 429 retry delay
-            if "429" in err_str:
-                match = re.search(r"retry in (\d+\.?\d*)s", err_str)
-                if match:
-                    delay = float(match.group(1)) + 1.5
-                else:
-                    delay = 30.0
-                    
-                print(f"[UC TRACE] ⚠️ LLM Quota Hit! Auto-sleeping for {delay} seconds...")
-                yield {"type": "chunk", "text": f"\n\n*(⏳ Gemini API quota reached. Auto-pausing for {round(delay)}s to refill bucket...)*\n\n"}
-                
-            await asyncio.sleep(delay)
+            import asyncio
+            await asyncio.sleep(2.0)
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -887,9 +883,6 @@ async def chat_endpoint(req: ChatRequest):
                 full_text = ""
                 tool_calls = []
                 yield json.dumps({"type": "clear_chunk"}) + "\n"
-                
-                # Anti-Burst Rate Limiting: Prevent slamming the new 20 RPM Gemini Free Tier
-                await asyncio.sleep(3.5)
                 
                 async for chunk in stream_gemini_response(messages, local_tools):
                     if chunk["type"] == "chunk":
