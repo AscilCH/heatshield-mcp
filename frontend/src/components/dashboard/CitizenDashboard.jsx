@@ -1,5 +1,5 @@
 import React from 'react';
-import { SvgTherm, SvgRoute, SvgShield, SvgActivity } from '../Icons';
+import { SvgTherm, SvgRoute, SvgShield, SvgActivity, SvgUser } from '../Icons';
 
 export default function CitizenDashboard({ 
   currentWeather, 
@@ -25,21 +25,21 @@ export default function CitizenDashboard({
       
       {/* 2x2 Action Grid */}
       <div className="action-grid">
-        <button className={`action-btn ${currentWeather ? 'btn-red' : 'btn-gray'}`} onClick={() => onQuickAction("I don't feel well. Please ask me for my symptoms to triage heat exhaustion vs heat stroke.")}>
-          <SvgShield size={28} />
-          <span>I don't feel well</span>
+        <button className="action-btn btn-gray" onClick={() => onQuickAction("Analyze the regional forecast. Are there any heatdomes or extreme anomalies coming?")}>
+          <SvgTherm size={28} />
+          <span>Weather & Heatdomes</span>
         </button>
-        <button className="action-btn btn-gray" onClick={() => onQuickAction("Find a cool place nearby and give me a safe walking route to it.")}>
+        <button className="action-btn btn-gray" onClick={() => onQuickAction("What is the safest, coolest place I can go to right now, and how do I get there?")}>
           <SvgRoute size={28} />
-          <span>Find cool place nearby</span>
+          <span>Safest Places to Go</span>
         </button>
         <button className="action-btn btn-gray" onClick={onOpenCheckIn}>
-          <SvgActivity size={28} />
-          <span>Check on someone</span>
+          <SvgUser size={28} />
+          <span>Community & Network</span>
         </button>
-        <button className="action-btn btn-gray" onClick={() => onQuickAction("Is it safe to work outside right now?")}>
-          <SvgTherm size={28} />
-          <span>Safe to work outside?</span>
+        <button className={`action-btn ${currentWeather ? 'btn-red' : 'btn-gray'}`} onClick={() => onQuickAction("I need health advice or emergency protocols for extreme heat.")}>
+          <SvgShield size={28} />
+          <span>Health & Emergency</span>
         </button>
       </div>
 
