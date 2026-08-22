@@ -236,44 +236,43 @@ export default function OnboardingModal({ onComplete, setUserLocation }) {
         .hs-progress-track { height: 4px; border-radius: 2px; background: rgba(255, 255, 255, 0.08); flex: 1; margin: 0 16px; overflow: hidden; }
         .hs-progress-fill { height: 100%; width: ${progressPercent}; background: linear-gradient(90deg, #00E5FF 0%, #FFEA00 40%, #FF6B00 70%, #E60000 100%); border-radius: 2px; transition: width .4s cubic-bezier(0.4, 0, 0.2, 1); }
 
-        .hs-eyebrow { font-family: 'IBM Plex Mono', monospace; font-size: 12px; color: #FF6B00; letter-spacing: 0.08em; margin: 0 0 10px; font-weight: 500; text-transform: uppercase; }
-        .hs-modal-title { font-family: 'Space Grotesk', sans-serif; font-weight: 700; font-size: 26px; margin: 0 0 12px; letter-spacing: -0.02em; color: #FFFFFF; }
-        .hs-lede { font-size: 15px; color: #A1A1AA; line-height: 1.6; margin: 0 0 28px; }
+        .hs-eyebrow { font-family: 'IBM Plex Mono', monospace; font-size: 13px; color: #FF6B00; letter-spacing: 0.08em; margin: 0 0 10px; font-weight: 500; text-transform: uppercase; }
+        .hs-modal-title { font-family: 'Space Grotesk', sans-serif; font-weight: 700; font-size: 28px; margin: 0 0 14px; letter-spacing: -0.02em; color: #FFFFFF; }
+        .hs-lede { font-size: 16px; color: #D4D4D8; line-height: 1.6; margin: 0 0 32px; }
 
         .hs-btn-primary {
-          width: 100%; height: 50px; border-radius: 12px; border: none;
+          width: 100%; height: 54px; border-radius: 12px; border: none;
           background: linear-gradient(135deg, #FF6B00, #E60000);
-          color: #FFFFFF; font-size: 15px; font-weight: 600; cursor: pointer;
+          color: #FFFFFF; font-size: 16px; font-weight: 600; cursor: pointer;
           display: flex; align-items: center; justify-content: center; gap: 10px;
-          margin-bottom: 12px; transition: all .2s cubic-bezier(0.4, 0, 0.2, 1);
+          margin-bottom: 14px; transition: all .2s cubic-bezier(0.4, 0, 0.2, 1);
         }
         .hs-btn-primary:hover:not(:disabled) { transform: translateY(-2px); box-shadow: 0 12px 24px -6px rgba(255,107,0,0.4); }
         .hs-btn-primary:disabled { opacity: 0.5; cursor: not-allowed; }
 
         .hs-btn-secondary {
-          width: 100%; height: 48px; border-radius: 12px; border: 1px solid rgba(255, 255, 255, 0.12);
-          background: rgba(255, 255, 255, 0.03); color: #FAFAFA; font-size: 14.5px; font-weight: 600;
-          cursor: pointer; margin-bottom: 12px; transition: all .2s ease;
+          width: 100%; height: 50px; border-radius: 12px; border: 1px solid rgba(255, 255, 255, 0.16);
+          background: rgba(255, 255, 255, 0.05); color: #FAFAFA; font-size: 15px; font-weight: 600;
+          cursor: pointer; margin-bottom: 14px; transition: all .2s ease;
         }
-        .hs-btn-secondary:hover { border-color: rgba(255, 255, 255, 0.24); background: rgba(255, 255, 255, 0.06); }
+        .hs-btn-secondary:hover { border-color: rgba(255, 255, 255, 0.3); background: rgba(255, 255, 255, 0.08); }
 
-        .hs-loc-chip { display: flex; align-items: center; gap: 8px; font-family: 'IBM Plex Mono', monospace; font-size: 12px; color: #00E5FF; margin: 0 0 16px; justify-content: ${language === 'العربية' ? 'flex-end' : 'flex-start'}; }
-        .hs-skip { font-size: 13.5px; color: #71717A; text-decoration: underline; text-underline-offset: 4px; cursor: pointer; text-align: center; margin: 0 0 24px; display: block; transition: color .2s ease; }
-        .hs-skip:hover { color: #A1A1AA; }
+        .hs-loc-chip { display: flex; align-items: center; gap: 8px; font-family: 'IBM Plex Mono', monospace; font-size: 13px; color: #00E5FF; margin: 0 0 20px; justify-content: ${language === 'العربية' ? 'flex-end' : 'flex-start'}; }
+        .hs-skip { font-size: 14.5px; color: #A1A1AA; text-decoration: none; cursor: pointer; text-align: center; margin: 0 0 24px; display: inline-block; padding: 8px 16px; border-radius: 8px; background: rgba(255, 255, 255, 0.03); transition: all .2s ease; }
+        .hs-skip:hover { color: #FFFFFF; background: rgba(255, 255, 255, 0.08); }
         
         .hs-back-link {
-          display: inline-flex; align-items: center; gap: 6px; background: none; border: none;
-          color: #71717A; font-size: 13.5px; cursor: pointer; padding: 0; margin-bottom: 20px; font-weight: 500; transition: color .2s ease;
+          display: inline-flex; align-items: center; gap: 8px; background: rgba(255, 255, 255, 0.03); border: none; border-radius: 8px; padding: 8px 12px;
+          color: #A1A1AA; font-size: 14.5px; cursor: pointer; margin-bottom: 24px; font-weight: 500; transition: all .2s ease;
         }
-        .hs-back-link:hover { color: #A1A1AA; }
+        .hs-back-link:hover { color: #FFFFFF; background: rgba(255, 255, 255, 0.08); }
 
         .hs-cap-card {
-          border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 16px; padding: 18px 20px; margin-bottom: 12px;
-          cursor: pointer; display: flex; gap: 16px; align-items: flex-start;
+          border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 16px; padding: 20px 24px; margin-bottom: 14px;
+          cursor: pointer; display: flex; gap: 20px; align-items: flex-start;
           transition: all .2s cubic-bezier(0.4, 0, 0.2, 1);
           background: rgba(255, 255, 255, 0.02);
         }
-        .hs-cap-card:hover { transform: translateY(-2px); border-color: rgba(255, 255, 255, 0.16); background: rgba(255, 255, 255, 0.04); }
         .hs-cap-card.hs-active { border-color: rgba(255, 255, 255, 0.24); background: rgba(255, 255, 255, 0.06); }
         .hs-cap-icon {
           width: 36px; height: 36px; border-radius: 10px; display: flex; align-items: center;
@@ -385,37 +384,37 @@ export default function OnboardingModal({ onComplete, setUserLocation }) {
 
               {/* Card 1 */}
               <div className={`hs-cap-card ${activeCard === 1 ? 'hs-active' : ''}`} onClick={() => setActiveCard(activeCard === 1 ? null : 1)}>
-                <div className="hs-cap-icon hs-heat"><SvgTherm size={16} /></div>
+                <div className="hs-cap-icon hs-heat"><SvgTherm size={20} /></div>
                 <div style={{ flex: 1 }}>
-                  <p style={{ fontSize: '13.5px', fontWeight: '600', margin: '0 0 2px' }}>{currentT.feature1Title}</p>
-                  <p style={{ fontSize: '12.5px', color: '#989BA6', margin: 0 }}>{currentT.feature1Desc}</p>
+                  <p style={{ fontSize: '15px', fontWeight: '600', margin: '0 0 4px', color: '#FFFFFF' }}>{currentT.feature1Title}</p>
+                  <p style={{ fontSize: '14px', color: '#A1A1AA', margin: 0 }}>{currentT.feature1Desc}</p>
                   {activeCard === 1 && <p className="hs-preview">{currentT.feature1Prev}</p>}
                 </div>
-                {dir === 'ltr' ? <ArrowRight size={15} color="#63666F" style={{ marginTop: '2px' }} /> : <ArrowLeft size={15} color="#63666F" style={{ marginTop: '2px' }} />}
+                {dir === 'ltr' ? <ArrowRight size={18} color="#A1A1AA" style={{ marginTop: '2px' }} /> : <ArrowLeft size={18} color="#A1A1AA" style={{ marginTop: '2px' }} />}
               </div>
 
               {/* Card 2 */}
               <div className={`hs-cap-card ${activeCard === 2 ? 'hs-active' : ''}`} onClick={() => setActiveCard(activeCard === 2 ? null : 2)}>
-                <div className="hs-cap-icon hs-cool"><SvgRoute size={16} /></div>
+                <div className="hs-cap-icon hs-cool"><SvgRoute size={20} /></div>
                 <div style={{ flex: 1 }}>
-                  <p style={{ fontSize: '13.5px', fontWeight: '600', margin: '0 0 2px' }}>{currentT.feature2Title}</p>
-                  <p style={{ fontSize: '12.5px', color: '#989BA6', margin: 0 }}>{currentT.feature2Desc}</p>
+                  <p style={{ fontSize: '15px', fontWeight: '600', margin: '0 0 4px', color: '#FFFFFF' }}>{currentT.feature2Title}</p>
+                  <p style={{ fontSize: '14px', color: '#A1A1AA', margin: 0 }}>{currentT.feature2Desc}</p>
                   {activeCard === 2 && <p className="hs-preview">{currentT.feature2Prev}</p>}
                 </div>
-                {dir === 'ltr' ? <ArrowRight size={15} color="#63666F" style={{ marginTop: '2px' }} /> : <ArrowLeft size={15} color="#63666F" style={{ marginTop: '2px' }} />}
+                {dir === 'ltr' ? <ArrowRight size={18} color="#A1A1AA" style={{ marginTop: '2px' }} /> : <ArrowLeft size={18} color="#A1A1AA" style={{ marginTop: '2px' }} />}
               </div>
 
               {/* Card 3 */}
               <div className={`hs-cap-card ${activeCard === 3 ? 'hs-active' : ''}`} onClick={() => setActiveCard(activeCard === 3 ? null : 3)}>
-                <div className="hs-cap-icon hs-heat"><SvgShield size={16} /></div>
+                <div className="hs-cap-icon hs-heat"><SvgShield size={20} /></div>
                 <div style={{ flex: 1 }}>
-                  <p style={{ fontSize: '13.5px', fontWeight: '600', margin: '0 0 2px', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                    {currentT.feature3Title} <Info size={13} color="#63666F" />
+                  <p style={{ fontSize: '15px', fontWeight: '600', margin: '0 0 4px', color: '#FFFFFF', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    {currentT.feature3Title} <Info size={15} color="#A1A1AA" />
                   </p>
-                  <p style={{ fontSize: '12.5px', color: '#989BA6', margin: 0 }}>{currentT.feature3Desc}</p>
+                  <p style={{ fontSize: '14px', color: '#A1A1AA', margin: 0 }}>{currentT.feature3Desc}</p>
                   {activeCard === 3 && <p className="hs-preview">{currentT.feature3Prev}</p>}
                 </div>
-                {dir === 'ltr' ? <ArrowRight size={15} color="#63666F" style={{ marginTop: '2px' }} /> : <ArrowLeft size={15} color="#63666F" style={{ marginTop: '2px' }} />}
+                {dir === 'ltr' ? <ArrowRight size={18} color="#A1A1AA" style={{ marginTop: '2px' }} /> : <ArrowLeft size={18} color="#A1A1AA" style={{ marginTop: '2px' }} />}
               </div>
 
               <p className="hs-disclaimer">{currentT.disclaimer}</p>
