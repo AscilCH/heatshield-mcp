@@ -23,6 +23,7 @@ import PlannerDashboard from './components/dashboard/PlannerDashboard'
 import CheckInView from './components/dashboard/CheckInView'
 import MarkdownRenderer from './components/chat/MarkdownRenderer'
 import ComparisonWidget from './components/cards/ComparisonWidget'
+import OnboardingModal from './components/cards/OnboardingModal'
 
 import './App.css'
 
@@ -502,6 +503,7 @@ function App() {
 
   return (
     <div className="app-container">
+      <OnboardingModal setUserLocation={setUserLocation} />
       <AlertBanner alert={wsAlert} onClose={() => setWsAlert(null)} />
       
       {/* Background Map & Canvas */}
