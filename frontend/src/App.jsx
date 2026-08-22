@@ -519,7 +519,7 @@ function App() {
 
   return (
     <div className="app-container">
-      <OnboardingModal setUserLocation={setUserLocation} />
+      <OnboardingModal onComplete={(lang) => handleOnboardComplete(lang)} setUserLocation={setUserLocation} />
       <AlertBanner alert={wsAlert} onClose={() => setWsAlert(null)} />
       
       {/* Background Map & Canvas */}

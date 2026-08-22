@@ -13,7 +13,7 @@ export default function OnboardingModal({ onComplete, setUserLocation }) {
   const [activeCard, setActiveCard] = useState(null);
 
   useEffect(() => {
-    const hasOnboarded = localStorage.getItem('heatshield_onboarded');
+    const hasOnboarded = localStorage.getItem('heatshield_onboarded_v2');
     if (hasOnboarded === 'true') {
       setIsOpen(false);
       if (onComplete) onComplete(localStorage.getItem('heatshield_lang') || 'English');
@@ -21,7 +21,7 @@ export default function OnboardingModal({ onComplete, setUserLocation }) {
   }, []); // Empty dependency array to run only once on mount
 
   const handleFinish = () => {
-    localStorage.setItem('heatshield_onboarded', 'true');
+    localStorage.setItem('heatshield_onboarded_v2', 'true');
     localStorage.setItem('heatshield_lang', language);
     setIsOpen(false);
     if (onComplete) onComplete(language);
