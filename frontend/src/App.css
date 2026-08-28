@@ -1576,3 +1576,7 @@ body {
   box-shadow: 0 4px 12px rgba(56, 189, 248, 0.2);
 }
 
+
+/* Leaflet Dark Mode Inversion */
+.leaflet-tile-pane .leaflet-layer { filter: invert(100%) hue-rotate(180deg) brightness(85%) contrast(100%); }
+
